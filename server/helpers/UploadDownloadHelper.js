@@ -27,7 +27,7 @@ const uploadSingleFiles = async (req, res, next) => {
       const fileStream = file.filepath;
       const bucketName = "sock-energy";
       const metaData = {};
-
+      
       // Determine the Content-Type based on file extension
       const extension = objectName.split(".").pop().toLowerCase();
       if (extension === "png") {

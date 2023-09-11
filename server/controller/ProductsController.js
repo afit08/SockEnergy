@@ -1,5 +1,3 @@
-const { Op } = require("sequelize");
-import config from "../config/config.js";
 const { Sequelize } = require("sequelize");
 const sequelize = require("../helpers/queryConn.js");
 
