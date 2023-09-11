@@ -1,0 +1,25 @@
+name: CI/CD with PM2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build
+        run: yarn run build
+
+      - name: Deploy with PM2
+        run: |
+          npm install -g pm2
+          pm2 reload ecosystem.config.js --env production
