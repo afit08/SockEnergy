@@ -9,8 +9,8 @@
     "cleanw": "rmdir /S build && mkdir build",
     "start": "node ./build/index.js",
     "build-server": "babel -d ./build ./server -s",
-    "build": "npm run clean && npm run build-server",
-    "buildw": "npm run cleanw && npm run build-server",
+    "build": "yarn run clean && yarn run build-server",
+    "buildw": "yarn run cleanw && yarn run build-server",
     "test": "jest",
     "sql": "npx sequelize-cli db:seed:all",
     "reverse:db": "sequelize-auto -o ./schemas -d sockenergy -h 100.78.16.82 -u postgres -p 5432 -x developer123! -e postgres -l esm"
