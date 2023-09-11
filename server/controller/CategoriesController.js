@@ -31,6 +31,27 @@ const allCategories = async (req, res) => {
   }
 };
 
+const detailCategories = async (req, res) => {
+  try {
+    const result = await req.context.models.categories.findAll({
+      where: { cate_id: req.params.id },
+      attributes: [
+        "cate_name",
+        "cate_image"
+      ]
+    });
+
+    return res.status(200).json({
+      message: "Detail Categories",
+      data: result
+    })
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message
+    })
+  }
+}
+
 const editCategories = async (req, res) => {
   try {
     const { files, fields } = req.fileAttrb;
@@ -75,5 +96,6 @@ export default {
   createCategories,
   allCategories,
   editCategories,
-  deleteCategories
+  deleteCategories,
+  detailCategories
 };

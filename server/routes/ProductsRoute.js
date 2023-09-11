@@ -38,6 +38,11 @@ router.delete(
   authJWT.ensureAdmin,
   IndexController.ProductsController.deleteProducts,
 );
+router.get(
+  "/detailProducts/:id",
+  authJWT.ensureAdmin,
+  IndexController.ProductsController.detailProducts,
+);
 
 // Customer
 router.get(
