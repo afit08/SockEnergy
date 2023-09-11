@@ -19,9 +19,7 @@ const createCategories = async (req, res) => {
 const allCategories = async (req, res) => {
   try {
     const result = await req.context.models.categories.findAll({
-      attributes: ["cate_name", "cate_image", "cate_created_at"],
     });
-    console.log(result);
     return res.status(200).json({
       message: "Show All Categories",
       data: result,
