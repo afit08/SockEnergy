@@ -2,6 +2,7 @@
 import _sequelize from "sequelize";
 const DataTypes = _sequelize.DataTypes;
 require("dotenv").config();
+import _address from  "./address.js";
 import _carts from  "./carts.js";
 import _categories from  "./categories.js";
 import _form_payment from  "./form_payment.js";
@@ -14,6 +15,7 @@ import _users from  "./users.js";
 const sequelize = require("../helpers/queryConn.js");
 
 const initModels = (sequelize) => {
+  const address = _address.init(sequelize, DataTypes);
   const carts = _carts.init(sequelize, DataTypes);
   const categories = _categories.init(sequelize, DataTypes);
   const form_payment = _form_payment.init(sequelize, DataTypes);
@@ -35,6 +37,7 @@ const initModels = (sequelize) => {
   users.hasMany(form_payment, { as: "form_payments", foreignKey: "fopa_user_id"});
 
   return {
+    address,
     carts,
     categories,
     form_payment,

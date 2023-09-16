@@ -6,6 +6,7 @@ import CartsRoute from './CartsRoute';
 import PaymentRoute from './PaymentMethodRoute';
 import OngkirRoute from './OngkirRoute';
 import GalleriesRoute from './GalleriesRoute';
+import AddressRoute from './AddressRoute';
 
 export default{
     UserRoute,
@@ -15,5 +16,6 @@ export default{
     CartsRoute,
     PaymentRoute,
     OngkirRoute,
-    GalleriesRoute
+    GalleriesRoute,
+    AddressRoute
 }

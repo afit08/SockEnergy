@@ -45,6 +45,7 @@ app.use(config.URL_API+"/carts",routes.CartsRoute);
 app.use(config.URL_API+"/paymentMethod", routes.PaymentRoute);
 app.use(config.URL_API+"/ongkir", routes.OngkirRoute);
 app.use(config.URL_API+"/galleries", routes.GalleriesRoute);
+app.use(config.URL_API+"/address", routes.AddressRoute);
 
 //use middleware to handle error from others modules
 app.use(middleware.handleError);

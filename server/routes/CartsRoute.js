@@ -11,5 +11,7 @@ router.get("/showCarts", authJWT.ensureCustomer, IndexController.CartsController
 router.post("/createPayment/:id", authJWT.ensureCustomer, IndexController.CartsController.postToPayment);
 router.get("/formPayment/:id", authJWT.ensureCustomer, IndexController.CartsController.showPayment);
 router.get("/checkout/:id", authJWT.ensureCustomer, IndexController.CartsController.checkout);
+router.post("/updateCart/:id", authJWT.ensureCustomer, IndexController.CartsController.updateAddCart);
+router.delete("/deleteCart/:id", authJWT.ensureCustomer, IndexController.CartsController.deleteCart);
 
 export default router;

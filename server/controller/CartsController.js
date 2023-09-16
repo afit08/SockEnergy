@@ -8,6 +8,7 @@ const qs = require('qs');
 const allCart = async (req, res) => {
     try {
         const result = await req.context.models.carts.findAll({
+            where: { cart_status: "unpayment" },
             include: [
                 {
                     model: req.context.models.products,
@@ -60,6 +61,48 @@ const addCart = async (req, res) => {
         });
     } catch (error) {
         return res.status(500).json({
+            message: error.message
+        })
+    }
+}
+
+const updateAddCart = async (req, res) => {
+    try {
+        const { cart_qty } = req.body;
+
+        const result = await req.context.models.carts.update(
+            {
+                cart_qty: cart_qty
+            },
+            {
+                returning: true,
+                where: { cart_id: req.params.id }
+            }
+        );   
+
+        return res.status(200).json({
+            message: "Update Cart",
+            data: result[1][0]
+        });
+    } catch (error) {
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+}
+
+const deleteCart = async (req, res) => {
+    try {
+        const result = await req.context.models.carts.destroy({
+            where: { cart_id: req.params.id }
+        });
+
+        return res.status(200).json({
+            message: "Delete Cart",
+            data: result
+        })
+    } catch (error) {
+        return res.status(404).json({
             message: error.message
         })
     }
@@ -328,5 +371,7 @@ export default {
     addCart,
     postToPayment,
     showPayment,
-    checkout
+    checkout,
+    updateAddCart,
+    deleteCart
 }
