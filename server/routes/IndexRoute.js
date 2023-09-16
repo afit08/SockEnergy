@@ -5,6 +5,7 @@ import ProductsRoute from './ProductsRoute';
 import CartsRoute from './CartsRoute';
 import PaymentRoute from './PaymentMethodRoute';
 import OngkirRoute from './OngkirRoute';
+import GalleriesRoute from './GalleriesRoute';
 
 export default{
     UserRoute,
@@ -13,5 +14,6 @@ export default{
     ProductsRoute,
     CartsRoute,
     PaymentRoute,
-    OngkirRoute
+    OngkirRoute,
+    GalleriesRoute
 }

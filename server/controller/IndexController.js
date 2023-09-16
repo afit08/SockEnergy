@@ -5,6 +5,7 @@ import ProductsController from "./ProductsController";
 import CartsController from "./CartsController";
 import PaymentMethodController from "./PaymentMethodController";
 import OngkirController from "./OngkirController";
+import GalleriesController from "./GalleriesController";
 
 export default{
     UserController,
@@ -13,5 +14,6 @@ export default{
     ProductsController,
     CartsController,
     PaymentMethodController,
-    OngkirController
+    OngkirController,
+    GalleriesController
 }
