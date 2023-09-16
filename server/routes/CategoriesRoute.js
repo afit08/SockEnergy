@@ -10,5 +10,6 @@ router.get("/image/:filename", UploadDownloadHelper.showProductImage);
 router.post("/edit/:id", UploadDownloadHelper.uploadSingleFiles, IndexController.CategoriesController.editCategories);
 router.delete("/delete/:id", IndexController.CategoriesController.deleteCategories);
 router.get("/:id", IndexController.CategoriesController.detailCategories);
+router.post("/searchCategories", IndexController.CategoriesController.allCategoriesSearch);
 
 export default router;

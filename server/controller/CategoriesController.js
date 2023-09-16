@@ -1,3 +1,5 @@
+const sequelize = require("../helpers/queryConn.js");
+
 const createCategories = async (req, res) => {
   const { files, fields } = req.fileAttrb;
 
@@ -18,16 +20,106 @@ const createCategories = async (req, res) => {
 
 const allCategories = async (req, res) => {
   try {
+    let limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
+    let page = parseInt(req.query.page) || 1; // Default page to 1 if not provided
+    let start = (page - 1) * limit;
+    let end = page * limit;
+
     const result = await req.context.models.categories.findAll({
+      offset: start, limit: limit
     });
+
+    const countResult = await req.context.models.categories.findAndCountAll({
+
+    });
+    // console.log(countResult);
+    const countFiltered = countResult.count;
+
+    let pagination = {};
+    pagination.totalRow = parseInt(countFiltered);
+    pagination.totalPage = Math.ceil(countFiltered / limit);
+    if (end < countFiltered) {
+      pagination.next = {
+        page: page + 1,
+        limit: limit,
+      };
+    }
+
+    if (start > 0) {
+      pagination.prev = {
+        page: page - 1,
+        limit: limit,
+      };
+    }
     return res.status(200).json({
       message: "Show All Categories",
       data: result,
+      pagination: pagination
     });
   } catch (error) {
     return res.status(404).json({ message: error.message });
   }
 };
+
+const allCategoriesSearch = async (req, res) => {
+  try {
+    const { search } = req.body;
+    let limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
+    let page = parseInt(req.query.page) || 1; // Default page to 1 if not provided
+    let start = (page - 1) * limit;
+    let end = page * limit;
+
+    const result = await sequelize.query(
+      `
+        select * from categories 
+        where lower(cate_name) like lower('%${search}%')
+        limit :limit offset :start
+      `,
+      {
+        replacements: { limit, start },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    )
+
+    const countResult = await sequelize.query(
+      `
+        select * from categories 
+        where lower(cate_name) like lower('%${search}%')
+      `,
+      {
+        type: sequelize.QueryTypes.SELECT,
+      }
+    )
+    // console.log(countResult);
+    const countFiltered = countResult.length;
+
+    let pagination = {};
+    pagination.totalRow = parseInt(countFiltered);
+    pagination.totalPage = Math.ceil(countFiltered / limit);
+    if (end < countFiltered) {
+      pagination.next = {
+        page: page + 1,
+        limit: limit,
+      };
+    }
+
+    if (start > 0) {
+      pagination.prev = {
+        page: page - 1,
+        limit: limit,
+      };
+    }
+    return res.status(200).json({
+      message: "Show All Categories",
+      data: result,
+      pagination: pagination
+    });
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message
+    })
+  }
+}
 
 const detailCategories = async (req, res) => {
   try {
@@ -95,5 +187,6 @@ export default {
   allCategories,
   editCategories,
   deleteCategories,
-  detailCategories
+  detailCategories,
+  allCategoriesSearch
 };
