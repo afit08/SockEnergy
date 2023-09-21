@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 const axios = require('axios');
 const SALT_ROUND = 10;
+const geografis = require('geografis');   
 
 const signup = async (req, res) => {
     const { files, fields } = req.fileAttrb;
@@ -15,9 +16,6 @@ const signup = async (req, res) => {
         user_email: fields[3].value,
         user_handphone: fields[4].value,
         user_role_id: fields[5].value,
-        user_address: fields[6].value,
-        user_province: fields[7].value,
-        user_city: fields[8].value,
         user_photo: files[0].file.originalFilename,
       });
       return res.status(200).json({
@@ -67,6 +65,9 @@ const dropdownProvince = async (req, res) => {
 
     const result = [];
     for (let index = 0; index < province.length; index++) {
+      if (province[index].province ) {
+        
+      }
       const data = {
         province_id: province[index].province_id,
         province: province[index].province

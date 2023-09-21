@@ -35,14 +35,6 @@ export default class address extends Model {
       type: DataTypes.STRING(255),
       allowNull: true
     },
-    add_lat: {
-      type: DataTypes.STRING(100),
-      allowNull: true
-    },
-    add_long: {
-      type: DataTypes.STRING(100),
-      allowNull: true
-    },
     add_address: {
       type: DataTypes.STRING(500),
       allowNull: true
@@ -59,9 +51,13 @@ export default class address extends Model {
       type: DataTypes.STRING(50),
       allowNull: true
     },
-    add_postal_code: {
-      type: DataTypes.STRING(20),
-      allowNull: true
+    add_user_id: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'user_id'
+      }
     }
   }, {
     sequelize,

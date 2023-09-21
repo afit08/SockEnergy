@@ -34,6 +34,14 @@ export default class products extends Model {
         model: 'categories',
         key: 'cate_id'
       }
+    },
+    prod_stock: {
+      type: DataTypes.STRING(10),
+      allowNull: true
+    },
+    prod_weight: {
+      type: DataTypes.STRING(10),
+      allowNull: true
     }
   }, {
     sequelize,

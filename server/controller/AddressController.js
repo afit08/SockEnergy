@@ -124,13 +124,10 @@ const createAddress = async (req, res) => {
       add_city,
       add_district,
       add_village,
-      add_lat,
-      add_long,
       add_address,
       add_detail_address,
       add_mark,
-      add_mark_default,
-      add_postal_code
+      add_mark_default
     } = req.body;
     const result = await req.context.models.address.create({
         add_personal_name: add_personal_name,
@@ -139,13 +136,11 @@ const createAddress = async (req, res) => {
         add_city: add_city,
         add_district: add_district,
         add_village: add_village,
-        add_lat: add_lat,
-        add_long: add_long,
         add_address: add_address,
         add_detail_address: add_detail_address,
         add_mark: add_mark,
         add_mark_default: add_mark_default,
-        add_postal_code: add_postal_code,
+        add_user_id: req.user.user_id,
     });
 
     return res.status(200).json({
@@ -167,6 +162,7 @@ const showAddress = async (req, res) => {
         let end = page * limit;
 
         const result = await req.context.models.address.findAll({
+            where: { add_user_id: req.user.user_id },
             offset: start, limit: limit
         });
 
@@ -231,13 +227,10 @@ const updateAddress = async (req, res) => {
             add_city,
             add_district,
             add_village,
-            add_lat,
-            add_long,
             add_address,
             add_detail_address,
             add_mark,
             add_mark_default,
-            add_postal_code
           } = req.body;
 
         const result = await req.context.models.address.update({
@@ -247,13 +240,10 @@ const updateAddress = async (req, res) => {
             add_city: add_city,
             add_district: add_district,
             add_village: add_village,
-            add_lat: add_lat,
-            add_long: add_long,
             add_address: add_address,
             add_detail_address: add_detail_address,
             add_mark: add_mark,
             add_mark_default: add_mark_default,
-            add_postal_code: add_postal_code,
         }, { returning: true, where: { add_id: req.params.id }});
 
         return res.status(200).json({

@@ -5,6 +5,10 @@ require("dotenv").config();
 import _address from  "./address.js";
 import _carts from  "./carts.js";
 import _categories from  "./categories.js";
+import _dt1 from  "./dt1.js";
+import _dt2 from  "./dt2.js";
+import _dt3 from  "./dt3.js";
+import _dt4 from  "./dt4.js";
 import _form_payment from  "./form_payment.js";
 import _galleries from  "./galleries.js";
 import _payment_method from  "./payment_method.js";
@@ -18,6 +22,10 @@ const initModels = (sequelize) => {
   const address = _address.init(sequelize, DataTypes);
   const carts = _carts.init(sequelize, DataTypes);
   const categories = _categories.init(sequelize, DataTypes);
+  const dt1 = _dt1.init(sequelize, DataTypes);
+  const dt2 = _dt2.init(sequelize, DataTypes);
+  const dt3 = _dt3.init(sequelize, DataTypes);
+  const dt4 = _dt4.init(sequelize, DataTypes);
   const form_payment = _form_payment.init(sequelize, DataTypes);
   const galleries = _galleries.init(sequelize, DataTypes);
   const payment_method = _payment_method.init(sequelize, DataTypes);
@@ -31,6 +39,8 @@ const initModels = (sequelize) => {
   products.hasMany(carts, { as: "carts", foreignKey: "cart_prod_id"});
   users.belongsTo(roles, { as: "user_role", foreignKey: "user_role_id"});
   roles.hasMany(users, { as: "users", foreignKey: "user_role_id"});
+  address.belongsTo(users, { as: "add_user", foreignKey: "add_user_id"});
+  users.hasMany(address, { as: "addresses", foreignKey: "add_user_id"});
   carts.belongsTo(users, { as: "cart_user", foreignKey: "cart_user_id"});
   users.hasMany(carts, { as: "carts", foreignKey: "cart_user_id"});
   form_payment.belongsTo(users, { as: "fopa_user", foreignKey: "fopa_user_id"});
@@ -40,6 +50,10 @@ const initModels = (sequelize) => {
     address,
     carts,
     categories,
+    dt1,
+    dt2,
+    dt3,
+    dt4,
     form_payment,
     galleries,
     payment_method,

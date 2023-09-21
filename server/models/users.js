@@ -1,6 +1,6 @@
 import _sequelize from 'sequelize';
 const { Model, Sequelize } = _sequelize;
-const uuid = require('uuid');
+const uuid = require("uuid");
 
 export default class users extends Model {
   static init(sequelize, DataTypes) {
@@ -35,10 +35,6 @@ export default class users extends Model {
         key: 'role_id'
       }
     },
-    user_address: {
-      type: DataTypes.STRING(255),
-      allowNull: true
-    },
     user_photo: {
       type: DataTypes.STRING(255),
       allowNull: true
@@ -47,13 +43,10 @@ export default class users extends Model {
       type: DataTypes.STRING(100),
       allowNull: true
     },
-    user_province: {
-      type: DataTypes.STRING(50),
-      allowNull: true
-    },
-    user_city: {
-      type: DataTypes.STRING(50),
-      allowNull: true
+    user_created_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.Sequelize.fn('now')
     }
   }, {
     sequelize,
