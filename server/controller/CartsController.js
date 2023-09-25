@@ -374,9 +374,24 @@ const checkout = async (req, res) => {
     const ongkir = responsez.data.rajaongkir.results;
     const data_ongkir = ongkir[0].costs;
 
+    const data_ongkirs = [];
+    for (let a = 0; a < data_ongkir.length; a++) {
+      const cost = data_ongkir[a].cost;
+      for (let b = 0; b < cost.length; b++) {
+        const data = {
+          service: data_ongkir[a].service,
+          description: data_ongkir[a].description,
+          value: cost[b].value,
+          etd: cost[b].etd,
+          note: cost[b].note,
+        };
+        data_ongkirs.push(data);
+      }
+    }
+
     const results = {
       data_address,
-      data_ongkir,
+      data_ongkirs,
       data_payment,
       data_cart,
       subtotal,
