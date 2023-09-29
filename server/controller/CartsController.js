@@ -1,3 +1,4 @@
+const sequelize = require('../helpers/queryConn');
 const geografis = require('geografis');
 const { Op } = require('sequelize');
 const moment = require('moment-timezone');
@@ -105,6 +106,7 @@ const deleteCart = async (req, res) => {
 };
 
 const postToPayment = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const { fopa_ongkir, fopa_payment } = req.body;
     const timeZone = 'Asia/Jakarta';
@@ -114,20 +116,39 @@ const postToPayment = async (req, res) => {
       .tz(timeZone)
       .format('YYYY-MM-DD HH:mm:ss');
 
-    const form_payment = await req.context.models.form_payment.create({
-      fopa_user_id: req.params.id,
-      fopa_ongkir: fopa_ongkir,
-      fopa_payment: fopa_payment,
-      fopa_start_date: startDate,
-      fopa_end_date: endDate,
-      fopa_rek: '123456789',
-    });
+    const form_payment = await req.context.models.form_payment.create(
+      {
+        fopa_user_id: req.params.id,
+        fopa_ongkir: fopa_ongkir,
+        fopa_payment: fopa_payment,
+        fopa_start_date: startDate,
+        fopa_end_date: endDate,
+        fopa_rek: '123456789',
+        fopa_status: 'unpayment',
+      },
+      { transaction },
+    );
+
+    await req.context.models.carts.update(
+      {
+        cart_status: 'payment',
+      },
+      {
+        returning: true,
+        where: { cart_user_id: req.params.id },
+      },
+      { transaction },
+    );
+    // await cart.save({ transaction });
+
+    await transaction.commit();
 
     return res.status(200).json({
       message: 'Creating Payment',
       data: form_payment,
     });
   } catch (error) {
+    await transaction.rollback();
     return res.status(500).json({
       message: error.message,
     });
@@ -136,108 +157,84 @@ const postToPayment = async (req, res) => {
 
 const showPayment = async (req, res) => {
   try {
-    const result = await req.context.models.form_payment.findAll({
-      where: { fopa_user_id: req.params.id },
+    const form_payment = await req.context.models.form_payment.findOne({
+      where: {
+        [Op.or]: [{ fopa_user_id: req.params.id }, { fopa_status: 'payment' }],
+      },
+    });
+
+    const cart = await req.context.models.carts.findAll({
+      where: {
+        cart_user_id: form_payment.fopa_user_id,
+        cart_status: 'payment',
+      },
       include: [
         {
-          model: req.context.models.users,
-          as: 'fopa_user',
+          model: req.context.models.products,
+          as: 'cart_prod',
           attributes: [
-            'user_id',
-            'user_name',
-            'user_handphone',
-            'user_address',
-          ],
-          include: [
-            {
-              model: req.context.models.carts,
-              as: 'carts',
-              attributes: [
-                'cart_id',
-                'cart_qty',
-                'cart_status',
-                'cart_prod_id',
-              ],
-              include: [
-                {
-                  model: req.context.models.products,
-                  as: 'cart_prod',
-                  attributes: [
-                    'prod_id',
-                    'prod_name',
-                    'prod_image',
-                    'prod_price',
-                  ],
-                },
-              ],
-            },
+            'prod_name',
+            'prod_image',
+            'prod_price',
+            'prod_desc',
+            'prod_stock',
           ],
         },
       ],
     });
 
-    const results = [];
-    for (let index = 0; index < result.length; index++) {
-      const timeZone = 'Asia/Jakarta';
-      const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
-      const endDate = moment()
-        .add(1, 'days')
-        .tz(timeZone)
-        .format('YYYY-MM-DD HH:mm:ss');
-      const end = moment(result[index].fopa_end_date)
-        .tz(timeZone)
-        .format('YYYY-MM-DD HH:mm:ss');
-      const start = moment(result[index].fopa_end_date)
-        .tz(timeZone)
-        .format('YYYY-MM-DD HH:mm:ss');
-
-      const unpayment = result[index].fopa_user.carts[0].cart_status;
-      console.log(unpayment);
-      if (end >= endDate) {
-        const carts = result[index].fopa_user.carts;
-
-        const cart = [];
-        for (let a = 0; a < carts.length; a++) {
-          if (carts[a].cart_status == 'unpayment') {
-            const data = {
-              cart_id: carts[a].cart_id,
-              cart_qty: carts[a].cart_qty,
-              cart_status: carts[a].cart_status,
-              prod_id: carts[a].cart_prod.prod_id,
-              prod_name: carts[a].cart_prod.prod_name,
-              prod_image: carts[a].cart_prod.prod_image,
-              prod_price: carts[a].cart_prod.prod_price,
-              amount: carts[a].cart_qty * carts[a].cart_prod.prod_price,
-            };
-            cart.push(data);
-          }
-        }
-        console.log(cart);
-
-        const sum = cart.reduce((acc, current) => acc + current.amount, 0);
-
-        const data = {
-          user_id: result[index].fopa_user.user_id,
-          user_name: result[index].fopa_user.user_name,
-          user_handphone: result[index].fopa_user.user_handphone,
-          user_address: result[index].fopa_user.user_address,
-          fopa_ongkir: result[index].fopa_ongkir,
-          fopa_payment: result[index].fopa_payment,
-          fopa_image_transaction: result[index].fopa_image_transaction,
-          cart: [...cart],
-          subtotal: sum,
-        };
-
-        results.push(data);
-      }
-    }
-
-    return res.status(200).json({
-      message: 'Show Form Payment',
-      data: results,
+    const address = await req.context.models.address.findOne({
+      where: { add_user_id: req.params.id, add_mark_default: 'default' },
     });
+
+    const ongkir = form_payment.fopa_ongkir;
+    const payment = form_payment.fopa_payment;
+    const no_rek = form_payment.fopa_rek;
+    const village = geografis.getVillage(address.add_village);
+
+    const data_address = [
+      {
+        personal_name: address.add_personal_name,
+        phone_number: address.add_phone_number,
+        address: address.add_address,
+        area:
+          'Kelurahan ' +
+          village.village +
+          ' ' +
+          'Kecamatan ' +
+          village.district +
+          ' ' +
+          village.city +
+          ' ' +
+          village.province +
+          ' ' +
+          village.postal,
+      },
+    ];
+
+    const timeZone = 'Asia/Jakarta';
+    const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
+    const endDate = moment(form_payment.fopa_end_date).format(
+      'YYYY-MM-DD HH:mm:ss',
+    );
+
+    if (startDate >= endDate) {
+      return res.status(200).json({
+        message: 'No Data',
+      });
+    } else if (form_payment.fopa_status == 'payment') {
+      return res.status(200).json({
+        message: 'No Data',
+      });
+    } else {
+      const result = { data_address, cart, ongkir, payment, no_rek };
+      return res.status(200).json({
+        message: 'Show form payment',
+        data: result,
+      });
+    }
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
     });
   }
@@ -246,7 +243,7 @@ const showPayment = async (req, res) => {
 const checkout = async (req, res) => {
   try {
     const address = await req.context.models.address.findOne({
-      where: { add_mark_default: 'default' },
+      where: { add_mark_default: 'default', add_user_id: req.user.user_id },
     });
 
     const village = geografis.getVillage(address.add_village);
@@ -257,10 +254,16 @@ const checkout = async (req, res) => {
         phone_number: address.add_phone_number,
         address: address.add_address,
         area:
+          'Kelurahan ' +
           village.village +
+          ' ' +
+          'Kecamatan ' +
           village.district +
+          ' ' +
           village.city +
+          ' ' +
           village.province +
+          ' ' +
           village.postal,
       },
     ];
@@ -269,7 +272,7 @@ const checkout = async (req, res) => {
     const data_payment = await req.context.models.payment_method.findAll({});
 
     const cart = await req.context.models.carts.findAll({
-      where: { cart_status: 'unpayment', cart_user_id: req.user.user_id },
+      where: { cart_user_id: req.user.user_id },
       include: [
         {
           model: req.context.models.products,
@@ -389,16 +392,222 @@ const checkout = async (req, res) => {
       }
     }
 
-    const results = {
-      data_address,
-      data_ongkirs,
-      data_payment,
-      data_cart,
-      subtotal,
-    };
+    const resultz = [];
+    if (cart[0].cart_status == 'unpayment') {
+      const results = {
+        data_address,
+        data_ongkirs,
+        data_payment,
+        data_cart,
+        subtotal,
+      };
+      resultz.push(results);
+    } else {
+      const results = {
+        data: 'Not Found',
+      };
+      resultz.push(results);
+    }
     return res.status(200).json({
       message: 'Show Form Checkout',
-      data: results,
+      data: resultz,
+    });
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+const listUnpayment = async (req, res) => {
+  try {
+    const form_payment = await req.context.models.form_payment.findAll({
+      where: { fopa_user_id: req.user.user_id, fopa_status: 'unpayment' },
+    });
+
+    const result = [];
+    for (let a = 0; a < form_payment.length; a++) {
+      const cart = await req.context.models.carts.findAll({
+        where: {
+          cart_user_id: form_payment[a].fopa_user_id,
+          cart_status: 'payment',
+        },
+        include: [
+          {
+            model: req.context.models.products,
+            as: 'cart_prod',
+            attributes: [
+              'prod_name',
+              'prod_image',
+              'prod_price',
+              'prod_desc',
+              'prod_stock',
+            ],
+          },
+        ],
+      });
+
+      const carts = [];
+      for (let b = 0; b < cart.length; b++) {
+        const data = {
+          qty: cart[b].cart_qty,
+          prod_name: cart[b].cart_prod.prod_name,
+          prod_image: cart[b].cart_prod.prod_image,
+          prod_price: cart[b].cart_prod.prod_price,
+          prod_desc: cart[b].cart_prod.prod_desc,
+          prod_stock: cart[b].cart_prod.prod_stock,
+        };
+        carts.push(data);
+      }
+
+      const address = await req.context.models.address.findOne({
+        where: {
+          add_user_id: form_payment[a].fopa_user_id,
+          add_mark_default: 'default',
+        },
+      });
+      const village = geografis.getVillage(address.add_village);
+
+      const data = {
+        id: form_payment[a].fopa_id,
+        ongkir: form_payment[a].fopa_ongkir,
+        payment: form_payment[a].fopa_payment,
+        no_rek: form_payment[a].fopa_rek,
+        status: form_payment[a].fopa_status,
+        personal_name: address.add_personal_name,
+        phone_number: address.add_phone_number,
+        address: address.add_address,
+        area:
+          'Kelurahan ' +
+          village.village +
+          ' ' +
+          'Kecamatan ' +
+          village.district +
+          ' ' +
+          village.city +
+          ' ' +
+          village.province +
+          ' ' +
+          village.postal,
+        carts: carts,
+      };
+
+      result.push(data);
+    }
+    return res.status(200).json({
+      message: 'List unpayment',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+const listPayment = async (req, res) => {
+  try {
+    const form_payment = await req.context.models.form_payment.findAll({
+      where: { fopa_user_id: req.user.user_id, fopa_status: 'payment' },
+    });
+
+    const result = [];
+    for (let a = 0; a < form_payment.length; a++) {
+      const cart = await req.context.models.carts.findAll({
+        where: {
+          cart_user_id: form_payment[a].fopa_user_id,
+          cart_status: 'payment',
+        },
+        include: [
+          {
+            model: req.context.models.products,
+            as: 'cart_prod',
+            attributes: [
+              'prod_name',
+              'prod_image',
+              'prod_price',
+              'prod_desc',
+              'prod_stock',
+            ],
+          },
+        ],
+      });
+
+      const carts = [];
+      for (let b = 0; b < cart.length; b++) {
+        const data = {
+          qty: cart[b].cart_qty,
+          prod_name: cart[b].cart_prod.prod_name,
+          prod_image: cart[b].cart_prod.prod_image,
+          prod_price: cart[b].cart_prod.prod_price,
+          prod_desc: cart[b].cart_prod.prod_desc,
+          prod_stock: cart[b].cart_prod.prod_stock,
+        };
+        carts.push(data);
+      }
+
+      const address = await req.context.models.address.findOne({
+        where: {
+          add_user_id: form_payment[a].fopa_user_id,
+          add_mark_default: 'default',
+        },
+      });
+      const village = geografis.getVillage(address.add_village);
+
+      const data = {
+        id: form_payment[a].fopa_id,
+        ongkir: form_payment[a].fopa_ongkir,
+        payment: form_payment[a].fopa_payment,
+        no_rek: form_payment[a].fopa_rek,
+        status: form_payment[a].fopa_status,
+        personal_name: address.add_personal_name,
+        phone_number: address.add_phone_number,
+        address: address.add_address,
+        area:
+          'Kelurahan ' +
+          village.village +
+          ' ' +
+          'Kecamatan ' +
+          village.district +
+          ' ' +
+          village.city +
+          ' ' +
+          village.province +
+          ' ' +
+          village.postal,
+        carts: carts,
+      };
+
+      result.push(data);
+    }
+    return res.status(200).json({
+      message: 'List payment',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+const uploadPayment = async (req, res) => {
+  const { files, fields } = req.fileAttrb;
+  try {
+    const result = await req.context.models.form_payment.update(
+      {
+        fopa_image_transaction: files[0].file.originalFilename,
+        fopa_status: 'payment',
+      },
+      {
+        returning: true,
+        where: { fopa_id: req.params.id },
+      },
+    );
+
+    return res.status(200).json({
+      message: 'Upload Bukti Pembayaran',
+      data: result[1][0],
     });
   } catch (error) {
     return res.status(404).json({
@@ -415,4 +624,7 @@ export default {
   checkout,
   updateAddCart,
   deleteCart,
+  listPayment,
+  listUnpayment,
+  uploadPayment,
 };
