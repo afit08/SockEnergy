@@ -135,7 +135,7 @@ const postToPayment = async (req, res) => {
       },
       {
         returning: true,
-        where: { cart_user_id: req.params.id },
+        where: { cart_user_id: req.params.id, cart_status: 'unpayment' },
       },
       { transaction },
     );
@@ -516,7 +516,7 @@ const listPayment = async (req, res) => {
       const cart = await req.context.models.carts.findAll({
         where: {
           cart_user_id: form_payment[a].fopa_user_id,
-          cart_status: 'payment',
+          cart_status: 'done`',
         },
         include: [
           {
@@ -593,6 +593,7 @@ const listPayment = async (req, res) => {
 
 const uploadPayment = async (req, res) => {
   const { files, fields } = req.fileAttrb;
+  const transaction = await sequelize.transaction();
   try {
     const result = await req.context.models.form_payment.update(
       {
@@ -603,11 +604,105 @@ const uploadPayment = async (req, res) => {
         returning: true,
         where: { fopa_id: req.params.id },
       },
+      { transaction },
     );
+
+    await req.context.models.carts.update(
+      {
+        cart_status: 'done',
+      },
+      { where: { cart_user_id: req.user.user_id, cart_status: 'payment' } },
+      { transaction },
+    );
+
+    await transaction.commit();
 
     return res.status(200).json({
       message: 'Upload Bukti Pembayaran',
       data: result[1][0],
+    });
+  } catch (error) {
+    await transaction.rollback();
+    return res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+const allOrders = async (req, res) => {
+  try {
+    const form_payment = await req.context.models.form_payment.findAll({});
+
+    const result = [];
+    for (let a = 0; a < form_payment.length; a++) {
+      const cart = await req.context.models.carts.findAll({
+        where: { cart_user_id: form_payment[a].fopa_user_id },
+        include: [
+          {
+            model: req.context.models.products,
+            as: 'cart_prod',
+            attributes: [
+              'prod_name',
+              'prod_image',
+              'prod_price',
+              'prod_desc',
+              'prod_stock',
+            ],
+          },
+        ],
+      });
+
+      const carts = [];
+      for (let b = 0; b < cart.length; b++) {
+        const data = {
+          qty: cart[b].cart_qty,
+          prod_name: cart[b].cart_prod.prod_name,
+          prod_image: cart[b].cart_prod.prod_image,
+          prod_price: cart[b].cart_prod.prod_price,
+          prod_desc: cart[b].cart_prod.prod_desc,
+          prod_stock: cart[b].cart_prod.prod_stock,
+        };
+        carts.push(data);
+      }
+
+      const address = await req.context.models.address.findOne({
+        where: {
+          add_user_id: form_payment[a].fopa_user_id,
+          add_mark_default: 'default',
+        },
+      });
+      const village = geografis.getVillage(address.add_village);
+
+      const data = {
+        id: form_payment[a].fopa_id,
+        ongkir: form_payment[a].fopa_ongkir,
+        payment: form_payment[a].fopa_payment,
+        no_rek: form_payment[a].fopa_rek,
+        status: form_payment[a].fopa_status,
+        personal_name: address.add_personal_name,
+        phone_number: address.add_phone_number,
+        address: address.add_address,
+        area:
+          'Kelurahan ' +
+          village.village +
+          ' ' +
+          'Kecamatan ' +
+          village.district +
+          ' ' +
+          village.city +
+          ' ' +
+          village.province +
+          ' ' +
+          village.postal,
+        carts: carts,
+      };
+
+      result.push(data);
+    }
+
+    return res.status(200).json({
+      message: 'All Orders',
+      data: result,
     });
   } catch (error) {
     return res.status(404).json({
@@ -627,4 +722,5 @@ export default {
   listPayment,
   listUnpayment,
   uploadPayment,
+  allOrders,
 };

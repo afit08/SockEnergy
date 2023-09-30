@@ -5,7 +5,7 @@ import authJWT from '../helpers/authJWT';
 
 const router = Router();
 
-// Admin
+// Customer
 router.post(
   '/addCarts',
   authJWT.ensureCustomer,
@@ -56,6 +56,13 @@ router.post(
   UploadDownloadHelper.uploadSingleFiles,
   authJWT.ensureCustomer,
   IndexController.CartsController.uploadPayment,
+);
+
+// Admin
+router.get(
+  '/allOrders',
+  authJWT.ensureAdmin,
+  IndexController.CartsController.allOrders,
 );
 
 export default router;
