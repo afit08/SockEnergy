@@ -161,7 +161,12 @@ const showPayment = async (req, res) => {
   try {
     const form_payment = await req.context.models.form_payment.findOne({
       where: {
-        [Op.or]: [{ fopa_user_id: req.params.id }, { fopa_status: 'payment' }],
+        // [Op.or]: [
+        //   { fopa_user_id: req.params.id },
+        //   { fopa_status: 'unpayment' },
+        // ],
+        fopa_user_id: req.params.id,
+        fopa_status: 'unpayment',
       },
     });
 
@@ -214,6 +219,7 @@ const showPayment = async (req, res) => {
       },
     ];
 
+    console.log(form_payment);
     const timeZone = 'Asia/Jakarta';
     const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
     const endDate = moment(form_payment.fopa_end_date).format(
@@ -276,7 +282,7 @@ const checkout = async (req, res) => {
     const data_payment = await req.context.models.payment_method.findAll({});
 
     const cart = await req.context.models.carts.findAll({
-      where: { cart_user_id: req.user.user_id },
+      where: { cart_user_id: req.user.user_id, cart_status: 'unpayment' },
       include: [
         {
           model: req.context.models.products,
@@ -425,6 +431,7 @@ const listUnpayment = async (req, res) => {
       `
         select
         distinct
+        a.fopa_id as id,
         a.fopa_ongkir as ongkir,
         a.fopa_payment as payment,
         a.fopa_rek as no_rek,
@@ -499,6 +506,8 @@ const listUnpayment = async (req, res) => {
         result.push(data);
       } else {
         const data = {
+          id: form_payment[index].id,
+          status: form_payment[index].status,
           ongkir: form_payment[index].ongkir,
           payment: form_payment[index].payment,
           no_rek: form_payment[index].no_rek,
@@ -531,6 +540,8 @@ const listPayment = async (req, res) => {
       `
       select
       distinct
+      a.fopa_id as id,
+      a.fopa_status as status,
       a.fopa_ongkir as ongkir,
       a.fopa_payment as payment,
       a.fopa_rek as no_rek,
@@ -581,6 +592,8 @@ const listPayment = async (req, res) => {
     const result = [];
     for (let index = 0; index < form_payment.length; index++) {
       const data = {
+        id: form_payment[index].id,
+        status: form_payment[index].status,
         ongkir: form_payment[index].ongkir,
         payment: form_payment[index].payment,
         no_rek: form_payment[index].no_rek,
