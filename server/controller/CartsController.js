@@ -161,10 +161,6 @@ const showPayment = async (req, res) => {
   try {
     const form_payment = await req.context.models.form_payment.findOne({
       where: {
-        // [Op.or]: [
-        //   { fopa_user_id: req.params.id },
-        //   { fopa_status: 'unpayment' },
-        // ],
         fopa_user_id: req.params.id,
         fopa_status: 'unpayment',
       },
@@ -197,6 +193,9 @@ const showPayment = async (req, res) => {
     const ongkir = form_payment.fopa_ongkir;
     const payment = form_payment.fopa_payment;
     const no_rek = form_payment.fopa_rek;
+    const start_date = form_payment.fopa_start_date;
+    const end_date = form_payment.fopa_end_date;
+    const status = form_payment.fopa_status;
     const village = geografis.getVillage(address.add_village);
 
     const data_address = [
@@ -219,7 +218,6 @@ const showPayment = async (req, res) => {
       },
     ];
 
-    console.log(form_payment);
     const timeZone = 'Asia/Jakarta';
     const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
     const endDate = moment(form_payment.fopa_end_date).format(
@@ -237,7 +235,16 @@ const showPayment = async (req, res) => {
         data: [],
       });
     } else {
-      const result = { data_address, cart, ongkir, payment, no_rek };
+      const result = {
+        data_address,
+        cart,
+        ongkir,
+        payment,
+        no_rek,
+        start_date,
+        end_date,
+        status,
+      };
       return res.status(200).json({
         message: 'Show form payment',
         data: result,
