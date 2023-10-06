@@ -129,7 +129,6 @@ const postToPayment = async (req, res) => {
       { transaction },
     );
 
-    console.log(form_payment.fopa_id);
     await req.context.models.carts.update(
       {
         cart_status: 'payment',
@@ -141,7 +140,6 @@ const postToPayment = async (req, res) => {
       },
       { transaction },
     );
-    // await cart.save({ transaction });
 
     await transaction.commit();
 
@@ -185,6 +183,27 @@ const showPayment = async (req, res) => {
         },
       ],
     });
+
+    const data_cart = [];
+    for (let index = 0; index < cart.length; index++) {
+      const data = {
+        cart_id: cart[index].cart_id,
+        cart_qty: cart[index].cart_qty,
+        cart_prod_id: cart[index].cart_id,
+        cart_status: cart[index].cart_status,
+        cart_user_id: cart[index].cart_user_id,
+        cart_fopa_id: cart[index].cart_fopa_id,
+        prod_name: cart[index].cart_prod.prod_name,
+        prod_image: cart[index].cart_prod.prod_image,
+        prod_price: cart[index].cart_prod.prod_price,
+        prod_desc: cart[index].cart_prod.prod_desc,
+        prod_stock: cart[index].cart_prod.prod_stock,
+        total: cart[index].cart_qty * cart[index].cart_prod.prod_price,
+      };
+      data_cart.push(data);
+    }
+
+    const totalAll = data_cart.reduce((acc, current) => acc + current.total, 0);
 
     const address = await req.context.models.address.findOne({
       where: { add_user_id: req.params.id, add_mark_default: 'default' },
@@ -237,13 +256,14 @@ const showPayment = async (req, res) => {
     } else {
       const result = {
         data_address,
-        cart,
+        data_cart,
         ongkir,
         payment,
         no_rek,
         start_date,
         end_date,
         status,
+        totalAll,
       };
       return res.status(200).json({
         message: 'Show form payment',
@@ -444,6 +464,8 @@ const listUnpayment = async (req, res) => {
         a.fopa_rek as no_rek,
         a.fopa_end_date as end_date,
         a.fopa_status,
+        a.fopa_start_date,
+        a.fopa_end_date,
         b.cart_qty as qty,
         c.prod_name,
         c.prod_image,
@@ -491,7 +513,7 @@ const listUnpayment = async (req, res) => {
       },
     ];
 
-    const result = [];
+    const data_cart = [];
     for (let index = 0; index < form_payment.length; index++) {
       const timeZone = 'Asia/Jakarta';
       const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
@@ -504,32 +526,43 @@ const listUnpayment = async (req, res) => {
           message: 'No Data',
           data: [],
         };
-        result.push(data);
+        data_cart.push(data);
       } else if (form_payment[index].fopa_status == 'payment') {
         const data = {
           message: 'No Data',
           data: [],
         };
-        result.push(data);
+        data_cart.push(data);
       } else {
         const data = {
           id: form_payment[index].id,
-          status: form_payment[index].status,
-          ongkir: form_payment[index].ongkir,
-          payment: form_payment[index].payment,
-          no_rek: form_payment[index].no_rek,
           qty: form_payment[index].qty,
           prod_name: form_payment[index].prod_name,
           prod_image: form_payment[index].prod_image,
           prod_price: form_payment[index].prod_price,
           prod_desc: form_payment[index].prod_desc,
           prod_stock: form_payment[index].prod_stock,
-          address: data_address,
+          total: form_payment[index].qty * form_payment[index].prod_price,
         };
-        result.push(data);
+        data_cart.push(data);
       }
     }
 
+    const totalAll = data_cart.reduce((acc, current) => acc + current.total, 0);
+
+    const payment = {
+      status: form_payment[0].fopa_status,
+      ongkir: form_payment[0].ongkir,
+      payment: form_payment[0].payment,
+      no_rek: form_payment[0].no_rek,
+      start_date: form_payment[0].fopa_start_date,
+      end_date: form_payment[0].fopa_end_date,
+      status: form_payment[0].fopa_status,
+      totalAll: totalAll,
+    };
+
+    const result = { data_address, data_cart, payment };
+    // console.log(results);
     return res.status(200).json({
       message: 'Show form payment',
       data: result,
