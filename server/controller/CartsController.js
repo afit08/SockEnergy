@@ -559,7 +559,7 @@ const listUnpayment = async (req, res) => {
     const totalAll = data_cart.reduce((acc, current) => acc + current.total, 0);
 
     const timeZone = 'Asia/Jakarta';
-    const payment = {
+    const data_payment = {
       status: form_payment[0].fopa_status,
       ongkir: form_payment[0].ongkir,
       payment: form_payment[0].payment,
@@ -575,7 +575,7 @@ const listUnpayment = async (req, res) => {
       totalAll: totalAll,
     };
 
-    const result = { data_address, data_cart, payment };
+    const result = { data_address, data_cart, data_payment };
     // console.log(results);
     return res.status(200).json({
       message: 'Show form payment',
