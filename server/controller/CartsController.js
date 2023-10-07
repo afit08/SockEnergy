@@ -474,6 +474,7 @@ const listUnpayment = async (req, res) => {
         a.fopa_start_date,
         a.fopa_end_date,
         a.fopa_image_transaction,
+        b.cart_id,
         b.cart_qty as qty,
         c.prod_name,
         c.prod_image,
@@ -543,7 +544,7 @@ const listUnpayment = async (req, res) => {
         data_cart.push(data);
       } else {
         const data = {
-          id: form_payment[index].id,
+          id: form_payment[index].cart_id,
           qty: form_payment[index].qty,
           prod_name: form_payment[index].prod_name,
           prod_image: form_payment[index].prod_image,
@@ -560,6 +561,7 @@ const listUnpayment = async (req, res) => {
 
     const timeZone = 'Asia/Jakarta';
     const data_payment = {
+      fopa_id: form_payment[0].id,
       status: form_payment[0].fopa_status,
       ongkir: form_payment[0].ongkir,
       payment: form_payment[0].payment,
@@ -600,6 +602,7 @@ const listPayment = async (req, res) => {
       a.fopa_payment as payment,
       a.fopa_rek as no_rek,
       a.fopa_end_date as end_date,
+      a.fopa_image_transaction,
       b.cart_qty as qty,
       c.prod_name,
       c.prod_image,
@@ -650,6 +653,7 @@ const listPayment = async (req, res) => {
         status: form_payment[index].status,
         ongkir: form_payment[index].ongkir,
         payment: form_payment[index].payment,
+        image_transaction: form_payment[index].fopa_image_transaction,
         no_rek: form_payment[index].no_rek,
         qty: form_payment[index].qty,
         prod_name: form_payment[index].prod_name,
