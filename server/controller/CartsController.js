@@ -209,12 +209,19 @@ const showPayment = async (req, res) => {
       where: { add_user_id: req.params.id, add_mark_default: 'default' },
     });
 
+    const timeZone = 'Asia/Jakarta';
+
     const ongkir = form_payment.fopa_ongkir;
     const payment = form_payment.fopa_payment;
     const no_rek = form_payment.fopa_rek;
-    const start_date = form_payment.fopa_start_date;
-    const end_date = form_payment.fopa_end_date;
+    const start_date = moment(form_payment.fopa_start_date)
+      .tz(timeZone)
+      .format('YYYY-MM-DD HH:mm:ss');
+    const end_date = moment(form_payment.fopa_end_date)
+      .tz(timeZone)
+      .format('YYYY-MM-DD HH:mm:ss');
     const status = form_payment.fopa_status;
+    const image_transaction = form_payment.fopa_image_transaction;
     const village = geografis.getVillage(address.add_village);
 
     const data_address = [
@@ -237,7 +244,6 @@ const showPayment = async (req, res) => {
       },
     ];
 
-    const timeZone = 'Asia/Jakarta';
     const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
     const endDate = moment(form_payment.fopa_end_date).format(
       'YYYY-MM-DD HH:mm:ss',
@@ -263,6 +269,7 @@ const showPayment = async (req, res) => {
         start_date,
         end_date,
         status,
+        image_transaction,
         totalAll,
       };
       return res.status(200).json({
@@ -466,6 +473,7 @@ const listUnpayment = async (req, res) => {
         a.fopa_status,
         a.fopa_start_date,
         a.fopa_end_date,
+        a.fopa_image_transaction,
         b.cart_qty as qty,
         c.prod_name,
         c.prod_image,
@@ -550,14 +558,20 @@ const listUnpayment = async (req, res) => {
 
     const totalAll = data_cart.reduce((acc, current) => acc + current.total, 0);
 
+    const timeZone = 'Asia/Jakarta';
     const payment = {
       status: form_payment[0].fopa_status,
       ongkir: form_payment[0].ongkir,
       payment: form_payment[0].payment,
       no_rek: form_payment[0].no_rek,
-      start_date: form_payment[0].fopa_start_date,
-      end_date: form_payment[0].fopa_end_date,
+      start_date: moment(form_payment[0].fopa_start_date)
+        .tz(timeZone)
+        .format('YYYY-MM-DD HH:mm:ss'),
+      end_date: moment(form_payment[0].fopa_end_date)
+        .tz(timeZone)
+        .format('YYYY-MM-DD HH:mm:ss'),
       status: form_payment[0].fopa_status,
+      image_transaction: form_payment[0].fopa_image_transaction,
       totalAll: totalAll,
     };
 
