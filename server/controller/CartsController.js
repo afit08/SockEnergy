@@ -596,13 +596,15 @@ const listPayment = async (req, res) => {
       `
       select
       distinct
-      a.fopa_id as id,
+      a.fopa_id,
       a.fopa_status as status,
       a.fopa_ongkir as ongkir,
       a.fopa_payment as payment,
       a.fopa_rek as no_rek,
+      a.fopa_start_date as start_date,
       a.fopa_end_date as end_date,
       a.fopa_image_transaction,
+      b.cart_id,
       b.cart_qty as qty,
       c.prod_name,
       c.prod_image,
@@ -628,7 +630,7 @@ const listPayment = async (req, res) => {
     });
     const village = geografis.getVillage(address.add_village);
 
-    const data_add = {
+    const data_address = {
       personal_name: address.add_personal_name,
       phone_number: address.add_phone_number,
       address: address.add_address,
@@ -646,26 +648,41 @@ const listPayment = async (req, res) => {
         village.postal,
     };
 
-    const result = [];
+    const data_cart = [];
     for (let index = 0; index < form_payment.length; index++) {
-      const data = {
-        id: form_payment[index].id,
-        status: form_payment[index].status,
-        ongkir: form_payment[index].ongkir,
-        payment: form_payment[index].payment,
-        image_transaction: form_payment[index].fopa_image_transaction,
-        no_rek: form_payment[index].no_rek,
+      const data1 = {
+        id: form_payment[index].cart_id,
         qty: form_payment[index].qty,
         prod_name: form_payment[index].prod_name,
         prod_image: form_payment[index].prod_image,
         prod_price: form_payment[index].prod_price,
         prod_desc: form_payment[index].prod_desc,
         prod_stock: form_payment[index].prod_stock,
-        address: data_add,
+        total: form_payment[index].qty * form_payment[index].prod_price,
       };
 
-      result.push(data);
+      data_cart.push(data1);
     }
+
+    const totalAll = data_cart.reduce((acc, current) => acc + current.total, 0);
+    const timeZone = 'Asia/Jakarta';
+    const data_payment = {
+      fopa_id: form_payment[0].fopa_id,
+      status: form_payment[0].status,
+      ongkir: form_payment[0].ongkir,
+      payment: form_payment[0].payment,
+      image_transaction: form_payment[0].fopa_image_transaction,
+      no_rek: form_payment[0].no_rek,
+      start_date: moment(form_payment[0].start_date)
+        .tz(timeZone)
+        .format('YYYY-MM-DD HH:mm:ss'),
+      end_date: moment(form_payment[0].end_date)
+        .tz(timeZone)
+        .format('YYYY-MM-DD HH:mm:ss'),
+      totalAll: totalAll,
+    };
+
+    const result = { data_address, data_cart, data_payment };
 
     return res.status(200).json({
       message: 'List Payment',
