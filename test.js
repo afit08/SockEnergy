@@ -1,11 +1,14 @@
-const shortid = require('shortid');
+const dateToCron = (date) => {
+  const minutes = date.getMinutes();
+  const hours = date.getHours();
+  const days = date.getDate();
+  const months = date.getMonth() + 1;
+  const dayOfWeek = date.getDay();
 
-console.log(shortid.generate());
+  return `${minutes} ${hours} ${days} ${months} ${dayOfWeek}`;
+};
 
-// console.log(shortid.characters('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$@'));
+const date = new Date();
 
-const moment = require('moment-timezone');
-const timeZone = 'Asia/Jakarta';
-const date = moment().tz(timeZone).format('DDMMYY');
-
-console.log('SE' + date);
+const cron = dateToCron(date);
+console.log(cron); //30 5 9 5 2

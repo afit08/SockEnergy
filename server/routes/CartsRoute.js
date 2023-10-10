@@ -62,6 +62,11 @@ router.get(
   authJWT.ensureCustomer,
   IndexController.CartsController.detailPayment,
 );
+router.get(
+  '/listCancel',
+  authJWT.ensureCustomer,
+  IndexController.CartsController.listCancel,
+);
 
 // Admin
 router.get(

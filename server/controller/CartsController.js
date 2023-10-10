@@ -1,7 +1,7 @@
 const sequelize = require('../helpers/queryConn');
 const geografis = require('geografis');
 const { Op } = require('sequelize');
-const moment = require('moment-timezone');
+const moment = require('moment');
 require('dotenv').config();
 const axios = require('axios');
 const qs = require('qs');
@@ -111,13 +111,9 @@ const postToPayment = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { fopa_ongkir, fopa_payment } = req.body;
-    const timeZone = 'Asia/Jakarta';
-    const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
-    const endDate = moment()
-      .add(1, 'days')
-      .tz(timeZone)
-      .format('YYYY-MM-DD HH:mm:ss');
-    const date = moment().tz(timeZone).format('DDMMYY');
+    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+    const endDate = moment().utc().add(1, 'days').format('DD-MM-YYYY HH:mm:ss');
+    const date = moment.utc().format('DDMMYY');
     const form_payment = await req.context.models.form_payment.create(
       {
         fopa_user_id: req.params.id,
@@ -217,12 +213,12 @@ const showPayment = async (req, res) => {
     const ongkir = form_payment.fopa_ongkir;
     const payment = form_payment.fopa_payment;
     const no_rek = form_payment.fopa_rek;
-    const start_date = moment(form_payment.fopa_start_date)
-      .tz(timeZone)
-      .format('YYYY-MM-DD HH:mm:ss');
-    const end_date = moment(form_payment.fopa_end_date)
-      .tz(timeZone)
-      .format('YYYY-MM-DD HH:mm:ss');
+    const start_date = moment
+      .utc(form_payment.fopa_start_date)
+      .format('DD-MM-YYYY HH:mm:ss');
+    const end_date = moment
+      .utc(form_payment.fopa_end_date)
+      .format('DD-MM-YYYY HH:mm:ss');
     const status = form_payment.fopa_status;
     const image_transaction = form_payment.fopa_image_transaction;
     const order_number =
@@ -250,15 +246,21 @@ const showPayment = async (req, res) => {
       },
     ];
 
-    const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
-    const endDate = moment(form_payment.fopa_end_date).format(
-      'YYYY-MM-DD HH:mm:ss',
-    );
+    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+    const endDate = moment
+      .utc(form_payment.fopa_end_date)
+      .format('DD-MM-YYYY HH:mm:ss');
 
-    if (startDate >= endDate) {
+    if (endDate >= startDate) {
+      const cancel = await req.context.models.form_payment.update(
+        {
+          fopa_status: 'cancel',
+        },
+        { where: { fopa_status: 'unpayment', fopa_user_id: req.user.user_id } },
+      );
       return res.status(200).json({
-        message: 'No Data',
-        data: [],
+        message: 'Send Cancel',
+        data: cancel,
       });
     } else if (form_payment.fopa_status == 'payment') {
       return res.status(200).json({
@@ -533,15 +535,23 @@ const listUnpayment = async (req, res) => {
     const data_cart = [];
     for (let index = 0; index < form_payment.length; index++) {
       const timeZone = 'Asia/Jakarta';
-      const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
-      const endDate = moment(form_payment[index].end_date).format(
-        'YYYY-MM-DD HH:mm:ss',
-      );
+      const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+      const endDate = moment
+        .utc(form_payment[index].end_date)
+        .format('DD-MM-YYYY HH:mm:ss');
 
-      if (startDate >= endDate) {
+      if (endDate >= startDate) {
+        const cancel = await req.context.models.form_payment.update(
+          {
+            fopa_status: 'cancel',
+          },
+          {
+            where: { fopa_status: 'unpayment', fopa_user_id: req.user.user_id },
+          },
+        );
         const data = {
-          message: 'No Data',
-          data: [],
+          message: 'Send Cancel',
+          data: cancel,
         };
         data_cart.push(data);
       } else if (form_payment[index].fopa_status == 'payment') {
@@ -572,12 +582,12 @@ const listUnpayment = async (req, res) => {
       ongkir: form_payment[0].ongkir,
       payment: form_payment[0].payment,
       no_rek: form_payment[0].no_rek,
-      start_date: moment(form_payment[0].fopa_start_date)
-        .tz(timeZone)
-        .format('YYYY-MM-DD HH:mm:ss'),
-      end_date: moment(form_payment[0].fopa_end_date)
-        .tz(timeZone)
-        .format('YYYY-MM-DD HH:mm:ss'),
+      start_date: moment
+        .utc(form_payment[0].fopa_start_date)
+        .format('DD-MM-YYYY HH:mm:ss'),
+      end_date: moment
+        .utc(form_payment[0].fopa_end_date)
+        .format('DD-MM-YYYY HH:mm:ss'),
       status: form_payment[0].fopa_status,
       image_transaction: form_payment[0].fopa_image_transaction,
       order_number:
@@ -601,65 +611,47 @@ const listUnpayment = async (req, res) => {
 
 const listPayment = async (req, res) => {
   try {
-    const form_payment = await sequelize.query(
+    const result = await sequelize.query(
       `
-      select
-      distinct
-      a.fopa_id,
-      a.fopa_status as status,
-      a.fopa_ongkir as ongkir,
-      a.fopa_payment as payment,
-      a.fopa_rek as no_rek,
-      a.fopa_image_transaction,
-      a.fopa_no_order_first,
-      a.fopa_no_order_second,
-      b.cart_id,
-      b.cart_qty as qty,
-      c.prod_name,
-      c.prod_image,
-      c.prod_price
-      from form_payment a
-      inner join carts b on b.cart_fopa_id = a.fopa_id
-      inner join products c on c.prod_id = b.cart_prod_id
-      and a.fopa_status = 'payment'
-      and b.cart_status = 'done'
+        select 
+        c.prod_id,
+        c.prod_name as name,
+        c.prod_price as price,
+        c.prod_image as image,
+        a.fopa_no_order_first as first_num,
+        a.fopa_no_order_second as second_num,
+        b.cart_id,
+        b.cart_qty as qty,
+        (b.cart_qty * c.prod_price) as total 
+        from form_payment a
+        left join carts b on b.cart_fopa_id = a.fopa_id 
+        left join products c on c.prod_id = b.cart_prod_id
+        where fopa_status = 'payment'
+        and cart_status = 'done'
+        and fopa_user_id = '${req.user.user_id}'
       `,
       {
         type: sequelize.QueryTypes.SELECT,
       },
     );
 
-    const data_cart = [];
-    for (let index = 0; index < form_payment.length; index++) {
-      const data1 = {
-        id: form_payment[index].cart_id,
-        qty: form_payment[index].qty,
-        prod_name: form_payment[index].prod_name,
-        prod_image: form_payment[index].prod_image,
-        prod_price: form_payment[index].prod_price,
-        total: form_payment[index].qty * form_payment[index].prod_price,
-        fopa_id: form_payment[index].fopa_id,
-        status: form_payment[index].status,
-        ongkir: form_payment[index].ongkir,
-        payment: form_payment[index].payment,
-        image_transaction: form_payment[index].fopa_image_transaction,
-        no_rek: form_payment[index].no_rek,
-        totalAll:
-          form_payment[index].qty * form_payment[index].prod_price +
-          parseInt(form_payment[index].ongkir),
-        order_number:
-          form_payment[index].fopa_no_order_second +
-          form_payment[index].fopa_no_order_first,
+    const results = [];
+    for (let index = 0; index < result.length; index++) {
+      const data = {
+        id_prod: result[index].prod_id,
+        name: result[index].name,
+        image: result[index].image,
+        order_number: result[index].second_num + result[index].first_num,
+        id_cart: result[index].cart_id,
+        qty: result[index].qty,
+        total: result[index].total,
       };
-
-      data_cart.push(data1);
+      results.push(data);
     }
-
-    const result = data_cart;
 
     return res.status(200).json({
       message: 'List Payment',
-      data: result,
+      data: results,
     });
   } catch (error) {
     return res.status(404).json({
@@ -804,10 +796,10 @@ const detailAllOrdersAdmin = async (req, res) => {
     ];
 
     const timeZone = 'Asia/Jakarta';
-    const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
-    const endDate = moment(form_payment[0].end_date).format(
-      'YYYY-MM-DD HH:mm:ss',
-    );
+    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+    const endDate = moment
+      .utc(form_payment[0].end_date)
+      .format('DD-MM-YYYY HH:mm:ss');
 
     if (startDate >= endDate) {
       return res.status(200).json({
@@ -887,10 +879,10 @@ const detailPaymentAdmin = async (req, res) => {
     ];
 
     const timeZone = 'Asia/Jakarta';
-    const startDate = moment().tz(timeZone).format('YYYY-MM-DD HH:mm:ss');
-    const endDate = moment(form_payment[0].end_date).format(
-      'YYYY-MM-DD HH:mm:ss',
-    );
+    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+    const endDate = moment
+      .utc(form_payment[0].end_date)
+      .format('DD-MM-YYYY HH:mm:ss');
 
     if (startDate >= endDate) {
       return res.status(200).json({
@@ -1016,6 +1008,57 @@ const detailPayment = async (req, res) => {
   }
 };
 
+const listCancel = async (req, res) => {
+  try {
+    const result = await sequelize.query(
+      `
+        select 
+        c.prod_id,
+        c.prod_name as name,
+        c.prod_price as price,
+        c.prod_image as image,
+        a.fopa_no_order_first as first_num,
+        a.fopa_no_order_second as second_num,
+        b.cart_id,
+        b.cart_qty as qty,
+        (b.cart_qty * c.prod_price) as total 
+        from form_payment a
+        left join carts b on b.cart_fopa_id = a.fopa_id 
+        left join products c on c.prod_id = b.cart_prod_id
+        where fopa_status = 'cancel'
+        and cart_status = 'payment'
+        and fopa_user_id = '${req.user.user_id}'
+      `,
+      {
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    const results = [];
+    for (let index = 0; index < result.length; index++) {
+      const data = {
+        id_prod: result[index].prod_id,
+        name: result[index].name,
+        image: result[index].image,
+        order_number: result[index].second_num + result[index].first_num,
+        id_cart: result[index].cart_id,
+        qty: result[index].qty,
+        total: result[index].total,
+      };
+      results.push(data);
+    }
+
+    return res.status(200).json({
+      message: 'List Cancel',
+      data: results,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 export default {
   allCart,
   addCart,
@@ -1031,4 +1074,5 @@ export default {
   detailAllOrdersAdmin,
   detailPaymentAdmin,
   detailPayment,
+  listCancel,
 };
