@@ -5,6 +5,8 @@ const moment = require('moment-timezone');
 require('dotenv').config();
 const axios = require('axios');
 const qs = require('qs');
+// const { nanoid } = require('nanoid');
+// import { nanoid } from 'nanoid';
 
 const allCart = async (req, res) => {
   try {
@@ -115,7 +117,7 @@ const postToPayment = async (req, res) => {
       .add(1, 'days')
       .tz(timeZone)
       .format('YYYY-MM-DD HH:mm:ss');
-
+    const date = moment().tz(timeZone).format('DDMMYY');
     const form_payment = await req.context.models.form_payment.create(
       {
         fopa_user_id: req.params.id,
@@ -125,6 +127,7 @@ const postToPayment = async (req, res) => {
         fopa_end_date: endDate,
         fopa_rek: '123456789',
         fopa_status: 'unpayment',
+        fopa_no_order_second: 'SE' + date,
       },
       { transaction },
     );
@@ -222,6 +225,9 @@ const showPayment = async (req, res) => {
       .format('YYYY-MM-DD HH:mm:ss');
     const status = form_payment.fopa_status;
     const image_transaction = form_payment.fopa_image_transaction;
+    const order_number =
+      form_payment.fopa_no_order_second + form_payment.fopa_no_order_first;
+
     const village = geografis.getVillage(address.add_village);
 
     const data_address = [
@@ -270,6 +276,7 @@ const showPayment = async (req, res) => {
         end_date,
         status,
         image_transaction,
+        order_number,
         totalAll,
       };
       return res.status(200).json({
@@ -474,13 +481,14 @@ const listUnpayment = async (req, res) => {
         a.fopa_start_date,
         a.fopa_end_date,
         a.fopa_image_transaction,
+        a.fopa_no_order_first,
+        a.fopa_no_order_second,
+        a.fopa_image_transaction,
         b.cart_id,
         b.cart_qty as qty,
         c.prod_name,
         c.prod_image,
-        c.prod_price,
-        c.prod_desc,
-        c.prod_stock
+        c.prod_price
         from form_payment a
         inner join carts b on b.cart_fopa_id = a.fopa_id
         inner join products c on c.prod_id = b.cart_prod_id
@@ -549,8 +557,6 @@ const listUnpayment = async (req, res) => {
           prod_name: form_payment[index].prod_name,
           prod_image: form_payment[index].prod_image,
           prod_price: form_payment[index].prod_price,
-          prod_desc: form_payment[index].prod_desc,
-          prod_stock: form_payment[index].prod_stock,
           total: form_payment[index].qty * form_payment[index].prod_price,
         };
         data_cart.push(data);
@@ -574,10 +580,13 @@ const listUnpayment = async (req, res) => {
         .format('YYYY-MM-DD HH:mm:ss'),
       status: form_payment[0].fopa_status,
       image_transaction: form_payment[0].fopa_image_transaction,
+      order_number:
+        form_payment[0].fopa_no_order_second +
+        form_payment[0].fopa_no_order_first,
       totalAll: totalAll,
     };
 
-    const result = { data_address, data_cart, data_payment };
+    const result = { data_cart, data_payment, data_address };
     // console.log(results);
     return res.status(200).json({
       message: 'Show form payment',
@@ -601,16 +610,14 @@ const listPayment = async (req, res) => {
       a.fopa_ongkir as ongkir,
       a.fopa_payment as payment,
       a.fopa_rek as no_rek,
-      a.fopa_start_date as start_date,
-      a.fopa_end_date as end_date,
       a.fopa_image_transaction,
+      a.fopa_no_order_first,
+      a.fopa_no_order_second,
       b.cart_id,
       b.cart_qty as qty,
       c.prod_name,
       c.prod_image,
-      c.prod_price,
-      c.prod_desc,
-      c.prod_stock
+      c.prod_price
       from form_payment a
       inner join carts b on b.cart_fopa_id = a.fopa_id
       inner join products c on c.prod_id = b.cart_prod_id
@@ -622,32 +629,6 @@ const listPayment = async (req, res) => {
       },
     );
 
-    const address = await req.context.models.address.findOne({
-      where: {
-        add_user_id: req.user.user_id,
-        add_mark_default: 'default',
-      },
-    });
-    const village = geografis.getVillage(address.add_village);
-
-    const data_address = {
-      personal_name: address.add_personal_name,
-      phone_number: address.add_phone_number,
-      address: address.add_address,
-      area:
-        'Kelurahan ' +
-        village.village +
-        ' ' +
-        'Kecamatan ' +
-        village.district +
-        ' ' +
-        village.city +
-        ' ' +
-        village.province +
-        ' ' +
-        village.postal,
-    };
-
     const data_cart = [];
     for (let index = 0; index < form_payment.length; index++) {
       const data1 = {
@@ -656,33 +637,25 @@ const listPayment = async (req, res) => {
         prod_name: form_payment[index].prod_name,
         prod_image: form_payment[index].prod_image,
         prod_price: form_payment[index].prod_price,
-        prod_desc: form_payment[index].prod_desc,
-        prod_stock: form_payment[index].prod_stock,
         total: form_payment[index].qty * form_payment[index].prod_price,
+        fopa_id: form_payment[index].fopa_id,
+        status: form_payment[index].status,
+        ongkir: form_payment[index].ongkir,
+        payment: form_payment[index].payment,
+        image_transaction: form_payment[index].fopa_image_transaction,
+        no_rek: form_payment[index].no_rek,
+        totalAll:
+          form_payment[index].qty * form_payment[index].prod_price +
+          parseInt(form_payment[index].ongkir),
+        order_number:
+          form_payment[index].fopa_no_order_second +
+          form_payment[index].fopa_no_order_first,
       };
 
       data_cart.push(data1);
     }
 
-    const totalAll = data_cart.reduce((acc, current) => acc + current.total, 0);
-    const timeZone = 'Asia/Jakarta';
-    const data_payment = {
-      fopa_id: form_payment[0].fopa_id,
-      status: form_payment[0].status,
-      ongkir: form_payment[0].ongkir,
-      payment: form_payment[0].payment,
-      image_transaction: form_payment[0].fopa_image_transaction,
-      no_rek: form_payment[0].no_rek,
-      start_date: moment(form_payment[0].start_date)
-        .tz(timeZone)
-        .format('YYYY-MM-DD HH:mm:ss'),
-      end_date: moment(form_payment[0].end_date)
-        .tz(timeZone)
-        .format('YYYY-MM-DD HH:mm:ss'),
-      totalAll: totalAll,
-    };
-
-    const result = { data_address, data_cart, data_payment };
+    const result = data_cart;
 
     return res.status(200).json({
       message: 'List Payment',
@@ -941,6 +914,108 @@ const detailPaymentAdmin = async (req, res) => {
   }
 };
 
+const detailPayment = async (req, res) => {
+  try {
+    const [data] = await sequelize.query(
+      `
+        select 
+        c.add_personal_name,
+        c.add_phone_number,
+        c.add_village,
+        c.add_address,
+        a.cart_qty as product_qty,
+        a.cart_status as status,
+        d.prod_id as product_id,
+        d.prod_name as product_name,
+        d.prod_image as product_image,
+        d.prod_price as product_price,
+        e.fopa_ongkir as ongkir_cost,
+        e.fopa_payment as ongkir_payment,
+        e.fopa_image_transaction as bukti,
+        e.fopa_status as payment_status,
+        e.fopa_no_order_first as first,
+        e.fopa_no_order_second as second
+        from carts a
+        left join users b on b.user_id = a.cart_user_id 
+        left join address c on c.add_user_id = b.user_id
+        left join products d on d.prod_id = a.cart_prod_id
+        left join form_payment e on e.fopa_id = a.cart_fopa_id
+        where cart_id = :id
+      `,
+      {
+        replacements: { id: req.params.id },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    const village = geografis.getVillage(data.add_village);
+
+    const data_address = {
+      personal_name: data.add_personal_name,
+      phone_number: data.add_phone_number,
+      address: data.add_address,
+      area:
+        'Kelurahan ' +
+        village.village +
+        ' ' +
+        'Kecamatan ' +
+        village.district +
+        ' ' +
+        village.city +
+        ' ' +
+        village.province +
+        ' ' +
+        village.postal,
+    };
+
+    const data_shipment = {};
+
+    const data_product = {
+      id: data.product_id,
+      name: data.product_name,
+      image: data.product_image,
+      price: data.product_price,
+      qty: data.product_qty,
+      status: data.status,
+      total: data.product_price * data.product_qty,
+    };
+
+    function sum(obj) {
+      var sum = 0;
+      for (var el in obj) {
+        if (obj.hasOwnProperty(el)) {
+          sum += parseFloat(obj[el]);
+        }
+      }
+      return sum;
+    }
+
+    const data_total = {
+      total: data.product_price * data.product_qty,
+    };
+
+    const data_payment = {
+      ongkir: data.ongkir_cost,
+      payment_method: data.ongkir_payment,
+      bukti: data.bukti,
+      status: data.payment_status,
+      totalAll: sum(data_total) + parseInt(data.ongkir_cost),
+      order_number: data.second + data.first,
+    };
+
+    const result = { data_address, data_shipment, data_product, data_payment };
+
+    return res.status(200).json({
+      message: 'Detail Payment',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 export default {
   allCart,
   addCart,
@@ -955,4 +1030,5 @@ export default {
   allOrders,
   detailAllOrdersAdmin,
   detailPaymentAdmin,
+  detailPayment,
 };

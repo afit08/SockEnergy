@@ -53,6 +53,15 @@ export default class form_payment extends Model {
           type: DataTypes.STRING,
           allowNull: true,
         },
+        fopa_no_order_first: {
+          autoIncrement: true,
+          type: DataTypes.INTEGER,
+          allowNull: false,
+        },
+        fopa_no_order_second: {
+          type: DataTypes.STRING,
+          allowNull: true,
+        },
       },
       {
         sequelize,

@@ -57,6 +57,11 @@ router.post(
   authJWT.ensureCustomer,
   IndexController.CartsController.uploadPayment,
 );
+router.get(
+  '/detailPayment/:id',
+  authJWT.ensureCustomer,
+  IndexController.CartsController.detailPayment,
+);
 
 // Admin
 router.get(
