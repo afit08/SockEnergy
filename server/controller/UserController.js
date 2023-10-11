@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 const axios = require('axios');
 const SALT_ROUND = 10;
 const geografis = require('geografis');
+const moment = require('moment');
 
 const signup = async (req, res) => {
   const { files, fields } = req.fileAttrb;
@@ -16,6 +17,8 @@ const signup = async (req, res) => {
       user_email: fields[3].value,
       user_handphone: fields[4].value,
       user_role_id: fields[5].value,
+      user_gender_id: fields[6].value,
+      user_birth_date: fields[7].value,
       user_photo: files[0].file.originalFilename,
     });
     return res.status(200).json({
@@ -119,9 +122,118 @@ const dropdownCity = async (req, res) => {
   }
 };
 
+const listGender = async (req, res) => {
+  try {
+    const result = await req.context.models.gender.findAll({});
+
+    return res.status(200).json({
+      message: 'List Gender',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+const detailUsers = async (req, res) => {
+  try {
+    const result = await req.context.models.users.findOne({
+      where: { user_id: req.params.id },
+      attributes: [
+        'user_id',
+        'user_name',
+        'user_personal_name',
+        'user_email',
+        'user_handphone',
+        'user_photo',
+        'user_gender_id',
+        'user_birth_date',
+      ],
+    });
+
+    return res.status(200).json({
+      message: 'Detail Users',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+const updateUsersNoimage = async (req, res) => {
+  const {
+    user_personal_name,
+    user_email,
+    user_handphone,
+    user_gender_id,
+    user_birth_date,
+  } = req.body;
+  try {
+    const result = await req.context.models.users.update(
+      {
+        user_personal_name: user_personal_name,
+        user_email: user_email,
+        user_handphone: user_handphone,
+        user_gender_id: user_gender_id,
+        user_birth_date: user_birth_date,
+      },
+      {
+        returning: true,
+        where: { user_id: req.params.id },
+      },
+    );
+
+    return res.status(200).json({
+      message: 'Update Users',
+      data: result[1][0],
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+const updateUsersImage = async (req, res) => {
+  const { files, fields } = req.fileAttrb;
+  try {
+    const result = await req.context.models.users.update(
+      {
+        user_personal_name: fields[0].value,
+        user_email: fields[1].value,
+        user_handphone: fields[2].value,
+        user_gender_id: fields[3].value,
+        user_birth_date: moment(fields[4].value, 'DD-MM-YYYY'),
+        user_photo: files[0].file.originalFilename,
+      },
+      {
+        returning: true,
+        where: { user_id: req.params.id },
+      },
+    );
+
+    return res.status(200).json({
+      message: 'Update User With Image',
+      data: result[1][0],
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 export default {
   signup,
   signin,
   dropdownProvince,
   dropdownCity,
+  listGender,
+  detailUsers,
+  updateUsersImage,
+  updateUsersNoimage,
 };
