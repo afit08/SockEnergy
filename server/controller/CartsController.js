@@ -1059,6 +1059,29 @@ const listCancel = async (req, res) => {
   }
 };
 
+const sendCancel = async (req, res) => {
+  try {
+    const result = await req.context.models.form_payment.update(
+      {
+        fopa_status: 'cancel',
+      },
+      {
+        return: true,
+        where: { fopa_id: req.params.id, fopa_user_id: req.user.user_id },
+      },
+    );
+
+    return res.status(200).json({
+      message: 'Send Cancel',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 export default {
   allCart,
   addCart,
@@ -1075,4 +1098,5 @@ export default {
   detailPaymentAdmin,
   detailPayment,
   listCancel,
+  sendCancel,
 };

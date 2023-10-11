@@ -67,6 +67,11 @@ router.get(
   authJWT.ensureCustomer,
   IndexController.CartsController.listCancel,
 );
+router.post(
+  '/sendCancel/:id',
+  authJWT.ensureCustomer,
+  IndexController.CartsController.sendCancel,
+);
 
 // Admin
 router.get(

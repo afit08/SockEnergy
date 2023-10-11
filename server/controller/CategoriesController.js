@@ -1,4 +1,4 @@
-const sequelize = require("../helpers/queryConn.js");
+const sequelize = require('../helpers/queryConn.js');
 
 const createCategories = async (req, res) => {
   const { files, fields } = req.fileAttrb;
@@ -10,7 +10,7 @@ const createCategories = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: "Create Categories",
+      message: 'Create Categories',
       data: result,
     });
   } catch (error) {
@@ -26,12 +26,11 @@ const allCategories = async (req, res) => {
     let end = page * limit;
 
     const result = await req.context.models.categories.findAll({
-      offset: start, limit: limit
+      offset: start,
+      limit: limit,
     });
 
-    const countResult = await req.context.models.categories.findAndCountAll({
-
-    });
+    const countResult = await req.context.models.categories.findAndCountAll({});
     // console.log(countResult);
     const countFiltered = countResult.count;
 
@@ -52,9 +51,9 @@ const allCategories = async (req, res) => {
       };
     }
     return res.status(200).json({
-      message: "Show All Categories",
+      message: 'Show All Categories',
       data: result,
-      pagination: pagination
+      pagination: pagination,
     });
   } catch (error) {
     return res.status(404).json({ message: error.message });
@@ -79,7 +78,7 @@ const allCategoriesSearch = async (req, res) => {
         replacements: { limit, start },
         type: sequelize.QueryTypes.SELECT,
       },
-    )
+    );
 
     const countResult = await sequelize.query(
       `
@@ -88,8 +87,8 @@ const allCategoriesSearch = async (req, res) => {
       `,
       {
         type: sequelize.QueryTypes.SELECT,
-      }
-    )
+      },
+    );
     // console.log(countResult);
     const countFiltered = countResult.length;
 
@@ -110,83 +109,113 @@ const allCategoriesSearch = async (req, res) => {
       };
     }
     return res.status(200).json({
-      message: "Show All Categories",
+      message: 'Show All Categories',
       data: result,
-      pagination: pagination
+      pagination: pagination,
     });
   } catch (error) {
     return res.status(404).json({
-      message: error.message
-    })
+      message: error.message,
+    });
   }
-}
+};
 
 const detailCategories = async (req, res) => {
   try {
     const result = await req.context.models.categories.findAll({
       where: { cate_id: req.params.id },
-      attributes: [
-        "cate_name",
-        "cate_image"
-      ]
+      attributes: ['cate_name', 'cate_image'],
     });
 
     return res.status(200).json({
-      message: "Detail Categories",
-      data: result
-    })
+      message: 'Detail Categories',
+      data: result,
+    });
   } catch (error) {
     return res.status(404).json({
-      message: error.message
-    })
+      message: error.message,
+    });
   }
-}
+};
 
 const editCategories = async (req, res) => {
   try {
     const { files, fields } = req.fileAttrb;
 
     const result = await req.context.models.categories.update(
-        {
-            cate_name: fields[0].value,
-            cate_image: files[0].file.originalFilename,
-        },
-        {
-            returning: true,
-            where: { cate_id: req.params.id },
-        },
-    )
+      {
+        cate_name: fields[0].value,
+        cate_image: files[0].file.originalFilename,
+      },
+      {
+        returning: true,
+        where: { cate_id: req.params.id },
+      },
+    );
 
     return res.status(200).json({
-        message: "Edit Categories",
-        data: result[1][0]
+      message: 'Edit Categories',
+      data: result[1][0],
     });
   } catch (error) {
-    return res.status(404).json({ message: error.message })
+    return res.status(404).json({ message: error.message });
   }
 };
 
 const deleteCategories = async (req, res) => {
-    try {
-        const result = await req.context.models.categories.destroy({
-            where : { cate_id: req.params.id }
-        });
+  try {
+    const result = await req.context.models.categories.destroy({
+      where: { cate_id: req.params.id },
+    });
 
-        return res.status(200).json({
-            message: "Delete Categories",
-            data: result
-        })
-    } catch (error) {
-        return res.status(404).json({
-            message: error.message
-        })
-    }
-}
+    return res.status(200).json({
+      message: 'Delete Categories',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+const detailProduct = async (req, res) => {
+  try {
+    const result = await req.context.models.categories.findAll({
+      where: { cate_id: req.params.id },
+      include: [
+        {
+          model: req.context.models.products,
+          as: 'products',
+          attributes: [
+            'prod_id',
+            'prod_name',
+            'prod_image',
+            'prod_price',
+            'prod_desc',
+            'prod_stock',
+            'prod_weight',
+          ],
+        },
+      ],
+    });
+
+    return res.status(200).json({
+      message: 'Detail Product',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
 export default {
   createCategories,
   allCategories,
   editCategories,
   deleteCategories,
   detailCategories,
-  allCategoriesSearch
+  allCategoriesSearch,
+  detailProduct,
 };
