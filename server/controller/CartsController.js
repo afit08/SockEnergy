@@ -250,8 +250,7 @@ const showPayment = async (req, res) => {
     const endDate = moment
       .utc(form_payment.fopa_end_date)
       .format('DD-MM-YYYY HH:mm:ss');
-
-    if (endDate >= startDate) {
+    if (startDate >= endDate) {
       const cancel = await req.context.models.form_payment.update(
         {
           fopa_status: 'cancel',
@@ -540,7 +539,7 @@ const listUnpayment = async (req, res) => {
         .utc(form_payment[index].end_date)
         .format('DD-MM-YYYY HH:mm:ss');
 
-      if (endDate >= startDate) {
+      if (startDate >= endDate) {
         const cancel = await req.context.models.form_payment.update(
           {
             fopa_status: 'cancel',
