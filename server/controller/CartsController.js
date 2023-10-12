@@ -111,16 +111,16 @@ const postToPayment = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { fopa_ongkir, fopa_payment } = req.body;
-    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
-    const endDate = moment().utc().add(1, 'days').format('DD-MM-YYYY HH:mm:ss');
-    const date = moment.utc().format('DDMMYY');
+    const startDate = moment().format('DD-MM-YYYY hh:mm:ss');
+    const endDate = moment().add(1, 'days').format('DD-MM-YYYY hh:mm:ss');
+    const date = moment().format('DDMMYY');
     const form_payment = await req.context.models.form_payment.create(
       {
         fopa_user_id: req.params.id,
         fopa_ongkir: fopa_ongkir,
         fopa_payment: fopa_payment,
-        fopa_start_date: startDate,
-        fopa_end_date: endDate,
+        fopa_start_date: moment(startDate, 'DD-MM-YYYY hh:mm:ss'),
+        fopa_end_date: moment(endDate, 'DD-MM-YYYY hh:mm:ss'),
         fopa_rek: '123456789',
         fopa_status: 'unpayment',
         fopa_no_order_second: 'SE' + date,
