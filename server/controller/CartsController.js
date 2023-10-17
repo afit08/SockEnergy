@@ -641,6 +641,7 @@ const listPayment = async (req, res) => {
         c.prod_image as image,
         a.fopa_no_order_first as first_num,
         a.fopa_no_order_second as second_num,
+        a.fopa_ongkir as ongkir,
         b.cart_id,
         b.cart_qty as qty,
         (b.cart_qty * c.prod_price) as total 
@@ -665,6 +666,7 @@ const listPayment = async (req, res) => {
         order_number: result[index].second_num + result[index].first_num,
         id_cart: result[index].cart_id,
         qty: result[index].qty,
+        ongkir: result[index].ongkir,
         total: result[index].total,
       };
       results.push(data);
