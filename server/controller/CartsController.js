@@ -617,7 +617,7 @@ const listUnpayment = async (req, res) => {
       address: data_address[0].address,
       area: data_address[0].area,
     };
-    const result = data;
+    const result = [data];
     // console.log(results);
     return res.status(200).json({
       message: 'Show form payment',
