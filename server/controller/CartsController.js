@@ -595,7 +595,29 @@ const listUnpayment = async (req, res) => {
       totalAll: totalAll,
     };
 
-    const result = { data_cart, data_payment, data_address };
+    const data = {
+      id: data_cart[0].id,
+      qty: data_cart[0].qty,
+      prod_name: data_cart[0].prod_name,
+      prod_image: data_cart[0].prod_image,
+      prod_price: data_cart[0].prod_price,
+      total: data_cart[0].total,
+      fopa_id: data_payment.fopa_id,
+      status: data_payment.status,
+      ongkir: data_payment.ongkir,
+      payment: data_payment.payment,
+      no_rek: data_payment.no_rek,
+      start_date: data_payment.start_date,
+      end_date: data_payment.end_date,
+      image_transaction: data_payment.image_transaction,
+      order_number: data_payment.order_number,
+      totalAll: data_payment.totalAll,
+      personal_name: data_address[0].personal_name,
+      phone_number: data_address[0].phone_number,
+      address: data_address[0].address,
+      area: data_address[0].area,
+    };
+    const result = data;
     // console.log(results);
     return res.status(200).json({
       message: 'Show form payment',

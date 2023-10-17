@@ -7,7 +7,7 @@ import bcrypt from 'bcrypt';
 
 // const jwtSecret = require("crypto").randomBytes(32).toString("hex") || "myjwt";
 const jwtSecret = process.env.JWT_SECRET || 'myjwt';
-const jwtOpts = { algorithm: 'HS256', expiresIn: '7d' };
+const jwtOpts = { algorithm: 'HS256', expiresIn: '1d' };
 import models from '../models/init-models';
 
 passport.use(
