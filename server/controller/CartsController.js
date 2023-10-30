@@ -574,7 +574,6 @@ const listUnpayment = async (req, res) => {
 
     const totalAll = data_cart.reduce((acc, current) => acc + current.total, 0);
 
-    const timeZone = 'Asia/Jakarta';
     const data_payment = {
       fopa_id: form_payment[0].id,
       status: form_payment[0].fopa_status,
@@ -594,7 +593,6 @@ const listUnpayment = async (req, res) => {
         form_payment[0].fopa_no_order_first,
       totalAll: totalAll,
     };
-
     const data = {
       id: data_cart[0].id,
       qty: data_cart[0].qty,
@@ -618,7 +616,6 @@ const listUnpayment = async (req, res) => {
       area: data_address[0].area,
     };
     const result = [data];
-    // console.log(results);
     return res.status(200).json({
       message: 'Show form payment',
       data: result,
@@ -626,6 +623,7 @@ const listUnpayment = async (req, res) => {
   } catch (error) {
     return res.status(404).json({
       message: error.message,
+      data: [],
     });
   }
 };

@@ -7,15 +7,17 @@ import PaymentRoute from './PaymentMethodRoute';
 import OngkirRoute from './OngkirRoute';
 import GalleriesRoute from './GalleriesRoute';
 import AddressRoute from './AddressRoute';
+import OrderRoute from './OrderRoute';
 
-export default{
-    UserRoute,
-    RolesRoute,
-    CategoriesRoute,
-    ProductsRoute,
-    CartsRoute,
-    PaymentRoute,
-    OngkirRoute,
-    GalleriesRoute,
-    AddressRoute
-}
+export default {
+  UserRoute,
+  RolesRoute,
+  CategoriesRoute,
+  ProductsRoute,
+  CartsRoute,
+  PaymentRoute,
+  OngkirRoute,
+  GalleriesRoute,
+  AddressRoute,
+  OrderRoute,
+};
