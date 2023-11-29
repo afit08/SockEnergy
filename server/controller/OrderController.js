@@ -142,6 +142,11 @@ const updateStatusOrder = async (req, res) => {
 
 const allDoneOrders = async (req, res) => {
   try {
+    let limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
+    let page = parseInt(req.query.page) || 1; // Default page to 1 if not provided
+    let start = (page - 1) * limit;
+    let end = page * limit;
+
     const result = await sequelize.query(
       `
         select 
@@ -157,9 +162,41 @@ const allDoneOrders = async (req, res) => {
       },
     );
 
+    const countResult = await sequelize.query(
+      `
+      select 
+      COUNT(*) as count
+      from form_payment
+      where fopa_status = 'orders';
+      `,
+      {
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    const countFiltered = countResult[0].count;
+
+    let pagination = {};
+    pagination.totalRow = parseInt(countFiltered);
+    pagination.totalPage = Math.ceil(countFiltered / limit);
+    if (end < countFiltered) {
+      pagination.next = {
+        page: page + 1,
+        limit: limit,
+      };
+    }
+
+    if (start > 0) {
+      pagination.prev = {
+        page: page - 1,
+        limit: limit,
+      };
+    }
+
     return res.status(200).json({
       message: 'All Done Orders',
       data: result,
+      pagination: pagination,
     });
   } catch (error) {
     return res.status(404).json({
