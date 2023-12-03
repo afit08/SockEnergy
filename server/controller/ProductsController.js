@@ -1,5 +1,5 @@
-const { Sequelize } = require("sequelize");
-const sequelize = require("../helpers/queryConn.js");
+const { Sequelize } = require('sequelize');
+const sequelize = require('../helpers/queryConn.js');
 
 const createProduct = async (req, res) => {
   const { files, fields } = req.fileAttrb;
@@ -14,7 +14,7 @@ const createProduct = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: "Create Products",
+      message: 'Create Products',
       data: result,
     });
   } catch (error) {
@@ -33,6 +33,21 @@ const allProducts = async (req, res) => {
       `
       SELECT * FROM products AS a
       INNER JOIN categories AS b ON b.cate_id = a.prod_cate_id
+      GROUP BY 
+      prod_id,
+      prod_name,
+      prod_image,
+      prod_price,
+      prod_desc,
+      prod_cate_id,
+      created_at,
+      prod_stock,
+      prod_weight,
+      cate_id,
+      cate_name,
+      cate_created_at,
+      cate_image
+        ORDER BY created_at DESC
       LIMIT :limit OFFSET :start
       `,
       {
@@ -43,7 +58,23 @@ const allProducts = async (req, res) => {
 
     const countResult = await sequelize.query(
       `
-      SELECT COUNT(*) AS count FROM products
+        SELECT COUNT(*) as count FROM products AS a
+        INNER JOIN categories AS b ON b.cate_id = a.prod_cate_id
+        GROUP BY 
+        prod_id,
+        prod_name,
+        prod_image,
+        prod_price,
+        prod_desc,
+        prod_cate_id,
+        created_at,
+        prod_stock,
+        prod_weight,
+        cate_id,
+        cate_name,
+        cate_created_at,
+        cate_image
+        ORDER BY created_at DESC
       `,
       {
         type: Sequelize.QueryTypes.SELECT,
@@ -70,7 +101,7 @@ const allProducts = async (req, res) => {
     }
 
     return res.status(200).json({
-      message: "Show All Products",
+      message: 'Show All Products',
       data: products,
       pagination: pagination,
     });
@@ -128,7 +159,7 @@ const searchProduct = async (req, res) => {
     }
 
     return res.status(200).json({
-      message: "Search All Products",
+      message: 'Search All Products',
       data: result,
       pagination: pagination,
     });
@@ -156,7 +187,7 @@ const updateProducts = async (req, res) => {
     );
 
     return res.status(200).json({
-      message: "Update With Image Products",
+      message: 'Update With Image Products',
       data: result[1][0],
     });
   } catch (error) {
@@ -182,7 +213,7 @@ const updateProductsNoImage = async (req, res) => {
     );
 
     return res.status(200).json({
-      message: "Update Without Image Products",
+      message: 'Update Without Image Products',
       data: result[1][0],
     });
   } catch (error) {
@@ -198,7 +229,7 @@ const deleteProducts = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: "Delete Product",
+      message: 'Delete Product',
       data: result,
     });
   } catch (error) {
@@ -218,8 +249,8 @@ const categoriProducts = async (req, res) => {
       include: [
         {
           model: req.context.models.categories,
-          as: "prod_cate",
-          attributes: ["cate_id", "cate_name"],
+          as: 'prod_cate',
+          attributes: ['cate_id', 'cate_name'],
         },
       ],
       offset: start,
@@ -248,7 +279,7 @@ const categoriProducts = async (req, res) => {
     }
 
     return res.status(200).json({
-      message: "Categories Products",
+      message: 'Categories Products',
       data: result,
       pagination: pagination,
     });
@@ -265,16 +296,16 @@ const detailProducts = async (req, res) => {
     const result = await req.context.models.products.findAll({
       where: { prod_id: req.params.id },
       attributes: [
-        "prod_id",
-        "prod_name",
-        "prod_image",
-        "prod_price",
-        "prod_desc",
+        'prod_id',
+        'prod_name',
+        'prod_image',
+        'prod_price',
+        'prod_desc',
       ],
     });
 
     return res.status(200).json({
-      message: "Detail Products",
+      message: 'Detail Products',
       data: result,
     });
   } catch (error) {

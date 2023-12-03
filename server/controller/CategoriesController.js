@@ -26,6 +26,7 @@ const allCategories = async (req, res) => {
     let end = page * limit;
 
     const result = await req.context.models.categories.findAll({
+      order: [['cate_created_at', 'DESC']],
       offset: start,
       limit: limit,
     });

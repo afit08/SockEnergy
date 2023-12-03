@@ -12,6 +12,7 @@ const allCart = async (req, res) => {
   try {
     const result = await req.context.models.carts.findAll({
       where: { cart_status: 'unpayment', cart_user_id: req.user.user_id },
+      order: [['created_at', 'desc']],
       include: [
         {
           model: req.context.models.products,
@@ -485,6 +486,7 @@ const listUnpayment = async (req, res) => {
         a.fopa_no_order_first,
         a.fopa_no_order_second,
         a.fopa_image_transaction,
+        a.fopa_created_at,
         b.cart_id,
         b.cart_qty as qty,
         c.prod_name,
@@ -496,6 +498,7 @@ const listUnpayment = async (req, res) => {
         where fopa_user_id = '${req.user.user_id}'
         and a.fopa_status = 'unpayment'
         and b.cart_status = 'payment'
+        order by fopa_created_at DESC
       `,
       {
         type: sequelize.QueryTypes.SELECT,
@@ -621,10 +624,16 @@ const listUnpayment = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    return res.status(404).json({
-      message: error.message,
-      data: [],
-    });
+    if (error.message == "Cannot read properties of undefined (reading 'id')") {
+      return res.status(200).json({
+        message: 'Show form payment',
+        data: [],
+      });
+    } else {
+      return res.status(404).json({
+        message: error.message,
+      });
+    }
   }
 };
 
@@ -649,6 +658,7 @@ const listPayment = async (req, res) => {
         where fopa_status = 'payment'
         and cart_status = 'done'
         and fopa_user_id = '${req.user.user_id}'
+        order by fopa_created_at DESC
       `,
       {
         type: sequelize.QueryTypes.SELECT,
@@ -1040,6 +1050,7 @@ const listCancel = async (req, res) => {
         c.prod_image as image,
         a.fopa_no_order_first as first_num,
         a.fopa_no_order_second as second_num,
+        a.fopa_created_at,
         b.cart_id,
         b.cart_qty as qty,
         (b.cart_qty * c.prod_price) as total 
@@ -1049,6 +1060,7 @@ const listCancel = async (req, res) => {
         where fopa_status = 'cancel'
         and cart_status = 'payment'
         and fopa_user_id = '${req.user.user_id}'
+        order by fopa_created_at DESC
       `,
       {
         type: sequelize.QueryTypes.SELECT,

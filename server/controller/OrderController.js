@@ -3,6 +3,11 @@ const geografis = require('geografis');
 
 const allOrders = async (req, res) => {
   try {
+    let limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
+    let page = parseInt(req.query.page) || 1; // Default page to 1 if not provided
+    let start = (page - 1) * limit;
+    let end = page * limit;
+
     const result = await sequelize.query(
       `
         select 
@@ -11,16 +16,68 @@ const allOrders = async (req, res) => {
         fopa_created_at as date, 
         fopa_payment as payment
         from form_payment
-        where fopa_status = 'payment';
+        where fopa_status = 'payment'
+        group by 
+        fopa_id,
+        fopa_no_order_second,
+        fopa_created_at,
+        fopa_payment
+        order by fopa_created_at desc
+        limit :limit offset :start
     `,
+      {
+        replacements: { limit, start },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    // Count Pagination
+
+    const countResult = await sequelize.query(
+      `
+      select 
+      count(*) as count
+      from form_payment
+      where fopa_status = 'payment'
+      group by 
+      fopa_id,
+      fopa_no_order_second,
+      fopa_created_at,
+      fopa_payment
+      order by fopa_created_at desc
+      `,
       {
         type: sequelize.QueryTypes.SELECT,
       },
     );
 
+    let countFiltered = 0;
+    if (countResult.length > 0) {
+      countFiltered = countResult[0].count;
+    }
+
+    let pagination = {};
+    pagination.totalRow = parseInt(countFiltered);
+    pagination.totalPage = Math.ceil(countFiltered / limit);
+
+    if (end < countFiltered) {
+      pagination.next = {
+        page: page + 1,
+        limit: limit,
+      };
+    }
+
+    if (start > 0) {
+      pagination.prev = {
+        page: page - 1,
+        limit: limit,
+      };
+    }
+
     return res.status(200).json({
       message: 'All Orders',
       data: result,
+      pagination: pagination,
     });
   } catch (error) {
     return res.status(404).json({
@@ -149,13 +206,19 @@ const allDoneOrders = async (req, res) => {
 
     const result = await sequelize.query(
       `
-        select 
-        fopa_id as id,
-        fopa_no_order_second as no_order,
-        fopa_created_at as date, 
-        fopa_payment as payment
-        from form_payment
-        where fopa_status = 'orders';
+      select 
+      fopa_id as id,
+      fopa_no_order_second as no_order,
+      fopa_created_at as date, 
+      fopa_payment as payment
+      from form_payment
+      where fopa_status = 'orders'
+      group by 
+      fopa_id,
+      fopa_no_order_second,
+      fopa_created_at,
+      fopa_payment
+      order by fopa_created_at desc;
     `,
       {
         type: sequelize.QueryTypes.SELECT,
@@ -165,16 +228,25 @@ const allDoneOrders = async (req, res) => {
     const countResult = await sequelize.query(
       `
       select 
-      COUNT(*) as count
+      count(*) as count
       from form_payment
-      where fopa_status = 'orders';
+      where fopa_status = 'orders'
+      group by 
+      fopa_id,
+      fopa_no_order_second,
+      fopa_created_at,
+      fopa_payment
+      order by fopa_created_at desc;
       `,
       {
         type: sequelize.QueryTypes.SELECT,
       },
     );
 
-    const countFiltered = countResult[0].count;
+    let countFiltered = 0;
+    if (countResult.length > 0) {
+      countFiltered = countResult[0].count;
+    }
 
     let pagination = {};
     pagination.totalRow = parseInt(countFiltered);
