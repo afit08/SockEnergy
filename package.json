@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "development": "infisical run -- nodemon --exec babel-node ./server/index.js",
+    "start:dev": "infisical run --env=dev -- nodemon --exec babel-node ./server/index.js",
     "clean": "rm -rf build && mkdir build",
     "cleanw": "rmdir /S build && mkdir build",
     "start": "node ./build/index.js",
