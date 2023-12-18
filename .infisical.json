@@ -1,5 +1,8 @@
 {
     "workspaceId": "65042cc9b890a8824258f782",
-    "defaultEnvironment": "",
-    "gitBranchToEnvironmentMapping": null
+    "defaultEnvironment": "sockenergy",
+    "gitBranchToEnvironmentMapping": {
+        "branchName": "dev",
+        "anotherBranchName": "staging"
+      }
 }
