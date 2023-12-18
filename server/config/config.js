@@ -1,6 +1,6 @@
-require("dotenv").config();
+require('dotenv').config();
 const config = {
-  env: process.env.NODE_ENV || "0.0.0.0",
+  env: process.env.NODE_ENV || '0.0.0.0',
   port: process.env.PORT,
   db_name: process.env.DATABASE,
   db_username: process.env.DATABASE_USER,
