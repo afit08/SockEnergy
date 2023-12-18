@@ -296,7 +296,7 @@ const showPayment = async (req, res) => {
 const checkout = async (req, res) => {
   try {
     const address = await req.context.models.address.findOne({
-      where: { add_mark_default: 'default', add_user_id: req.user.user_id },
+      where: { add_mark_default: 'default', add_user_id: req.params.id },
     });
 
     const village = geografis.getVillage(address.add_village);
@@ -323,9 +323,8 @@ const checkout = async (req, res) => {
 
     //   Data Payment
     const data_payment = await req.context.models.payment_method.findAll({});
-
     const cart = await req.context.models.carts.findAll({
-      where: { cart_user_id: req.user.user_id, cart_status: 'unpayment' },
+      where: { cart_user_id: req.params.id, cart_status: 'unpayment' },
       include: [
         {
           model: req.context.models.products,
@@ -416,6 +415,7 @@ const checkout = async (req, res) => {
       weight: `${weight}`,
       courier: 'jne',
     });
+
     let cost = {
       method: 'post',
       maxBodyLength: Infinity,
@@ -429,7 +429,6 @@ const checkout = async (req, res) => {
     const responsez = await axios(cost);
     const ongkir = responsez.data.rajaongkir.results;
     const data_ongkir = ongkir[0].costs;
-
     const data_ongkirs = [];
     for (let a = 0; a < data_ongkir.length; a++) {
       const cost = data_ongkir[a].cost;
@@ -445,6 +444,7 @@ const checkout = async (req, res) => {
       }
     }
 
+    console.log(req.user.user_id);
     const resultz = [];
     if (cart[0].cart_status == 'unpayment') {
       const results = {

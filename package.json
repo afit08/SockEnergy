@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "development": "nodemon --exec babel-node ./server/index.js",
+    "development": "infisical run -- nodemon --exec babel-node ./server/index.js",
     "clean": "rm -rf build && mkdir build",
     "cleanw": "rmdir /S build && mkdir build",
     "start": "node ./build/index.js",
@@ -25,7 +25,8 @@
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
-    "dotenv": "^10.0.0",
+    "dotenv": "^16.3.1",
+    "env": "^0.0.2",
     "express": "^4.17.1",
     "express-formidable": "^1.2.0",
     "express-pino-logger": "^6.0.0",
