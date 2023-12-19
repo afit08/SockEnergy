@@ -168,6 +168,31 @@ const updateGalleries = async (req, res) => {
   }
 };
 
+const updateGalleriesNoImage = async (req, res) => {
+  const { gall_name } = req.body;
+
+  try {
+    const result = await req.context.models.galleries.update(
+      {
+        gall_name: gall_name,
+      },
+      {
+        returning: true,
+        where: { gall_id: req.params.id },
+      },
+    );
+
+    return res.status(200).json({
+      message: 'Update Galleries',
+      data: result[1][0],
+    });
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
 const deleteGalleries = async (req, res) => {
   try {
     const result = await req.context.models.galleries.destroy({
@@ -191,5 +216,6 @@ export default {
   createGalleries,
   detailGalleries,
   updateGalleries,
+  updateGalleriesNoImage,
   deleteGalleries,
 };

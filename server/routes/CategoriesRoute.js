@@ -17,6 +17,10 @@ router.post(
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.CategoriesController.editCategories,
 );
+router.post(
+  '/editNoImage/:id',
+  IndexController.CategoriesController.editCategoriesNoImage,
+);
 router.delete(
   '/delete/:id',
   IndexController.CategoriesController.deleteCategories,

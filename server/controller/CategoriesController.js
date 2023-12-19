@@ -125,7 +125,7 @@ const detailCategories = async (req, res) => {
   try {
     const result = await req.context.models.categories.findAll({
       where: { cate_id: req.params.id },
-      attributes: ['cate_name', 'cate_image'],
+      attributes: ['cate_id', 'cate_name', 'cate_image'],
     });
 
     return res.status(200).json({
@@ -211,10 +211,35 @@ const detailProduct = async (req, res) => {
     });
   }
 };
+
+const editCategoriesNoImage = async (req, res) => {
+  try {
+    const { cate_name } = req.body;
+
+    const result = await req.context.models.categories.update(
+      {
+        cate_name: cate_name,
+      },
+      {
+        returning: true,
+        where: { cate_id: req.params.id },
+      },
+    );
+
+    return res.status(200).json({
+      message: 'Edit Categories No Image',
+      data: result[1][0],
+    });
+  } catch (error) {
+    return res.status(404).json({ message: error.message });
+  }
+};
+
 export default {
   createCategories,
   allCategories,
   editCategories,
+  editCategoriesNoImage,
   deleteCategories,
   detailCategories,
   allCategoriesSearch,
