@@ -295,13 +295,6 @@ const detailProducts = async (req, res) => {
   try {
     const result = await req.context.models.products.findAll({
       where: { prod_id: req.params.id },
-      attributes: [
-        'prod_id',
-        'prod_name',
-        'prod_image',
-        'prod_price',
-        'prod_desc',
-      ],
     });
 
     return res.status(200).json({
