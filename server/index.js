@@ -23,6 +23,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // use helmet spy bisa dikenali SEO
 app.use(helmet());
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+    },
+  }),
+);
+app.use(helmet.hsts({ maxAge: 2147483648 }));
 // secure apps by setting various HTTP headers
 app.use(compress());
 // enable CORS - Cross Origin Resource Sharing
