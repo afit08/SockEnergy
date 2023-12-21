@@ -11,6 +11,8 @@ const createProduct = async (req, res) => {
       prod_desc: fields[2].value,
       prod_cate_id: fields[3].value,
       prod_image: files[0].file.originalFilename,
+      prod_stock: fields[5].value,
+      prod_weight: fields[6].value,
     });
 
     return res.status(200).json({
@@ -179,6 +181,8 @@ const updateProducts = async (req, res) => {
         prod_desc: fields[2].value,
         prod_cate_id: fields[3].value,
         prod_image: files[0].file.originalFilename,
+        prod_stock: fields[5].value,
+        prod_weight: fields[6].value,
       },
       {
         returning: true,
@@ -196,7 +200,14 @@ const updateProducts = async (req, res) => {
 };
 
 const updateProductsNoImage = async (req, res) => {
-  const { prod_name, prod_price, prod_desc, prod_cate_id } = req.body;
+  const {
+    prod_name,
+    prod_price,
+    prod_desc,
+    prod_cate_id,
+    prod_stock,
+    prod_weight,
+  } = req.body;
 
   try {
     const result = await req.context.models.products.update(
@@ -205,6 +216,8 @@ const updateProductsNoImage = async (req, res) => {
         prod_price: prod_price,
         prod_desc: prod_desc,
         prod_cate_id: prod_cate_id,
+        prod_stock: prod_stock,
+        prod_weight: prod_weight,
       },
       {
         returning: true,
