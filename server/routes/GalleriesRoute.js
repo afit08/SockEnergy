@@ -30,9 +30,4 @@ router.post(
   IndexController.GalleriesController.allGalleriesSearch,
 );
 
-router.post(
-  '/validation',
-  IndexController.GalleriesController.ValidationSanitization,
-);
-
 export default router;

@@ -51,6 +51,7 @@ const allCategories = async (req, res) => {
         limit: limit,
       };
     }
+
     return res.status(200).json({
       message: 'Show All Categories',
       data: result,
