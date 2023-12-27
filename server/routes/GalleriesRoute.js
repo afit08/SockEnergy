@@ -17,39 +17,39 @@ router.get(
   IndexController.GalleriesController.allGalleries,
 );
 router.post(
-  '/store',
+  '/admin/store',
   authJWT.ensureAdmin,
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.GalleriesController.createGalleries,
 );
 router.get(
-  '/image/:filename',
+  '/admin/image/:filename',
   authJWT.ensureAdmin,
   UploadDownloadHelper.showProductImage,
 );
 router.post(
-  '/edit/:id',
+  '/admin/edit/:id',
   authJWT.ensureAdmin,
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.GalleriesController.updateGalleries,
 );
 router.post(
-  '/editNoImage/:id',
+  '/admin/editNoImage/:id',
   authJWT.ensureAdmin,
   IndexController.GalleriesController.updateGalleriesNoImage,
 );
 router.delete(
-  '/delete/:id',
+  '/admin/delete/:id',
   authJWT.ensureAdmin,
   IndexController.GalleriesController.deleteGalleries,
 );
 router.get(
-  '/:id',
+  '/admin/:id',
   authJWT.ensureAdmin,
   IndexController.GalleriesController.detailGalleries,
 );
 router.post(
-  '/searchCategories',
+  '/admin/searchCategories',
   authJWT.ensureAdmin,
   IndexController.GalleriesController.allGalleriesSearch,
 );

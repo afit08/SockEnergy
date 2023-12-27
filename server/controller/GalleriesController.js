@@ -45,6 +45,7 @@ const allGalleries = async (req, res) => {
 };
 
 const allGalleriesSearch = async (req, res) => {
+  const { search } = req.body;
   let limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
   let page = parseInt(req.query.page) || 1; // Default page to 1 if not provided
   let start = (page - 1) * limit;
@@ -167,6 +168,7 @@ const updateGalleries = async (req, res) => {
 };
 
 const updateGalleriesNoImage = async (req, res) => {
+  const { gall_name } = req.body;
   try {
     const result = await req.context.models.galleries.update(
       {
