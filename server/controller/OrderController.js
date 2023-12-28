@@ -10,20 +10,20 @@ const allOrders = async (req, res) => {
 
     const result = await sequelize.query(
       `
-        select 
-        fopa_id as id,
-        fopa_no_order_second as no_order,
-        fopa_created_at as date, 
-        fopa_payment as payment
-        from form_payment
-        where fopa_status = 'payment'
-        group by 
-        fopa_id,
-        fopa_no_order_second,
-        fopa_created_at,
-        fopa_payment
-        order by fopa_created_at desc
-        limit :limit offset :start
+        SELECT 
+        fopa_id AS id,
+        fopa_no_order_second AS no_order,
+        fopa_created_at AS date, 
+        fopa_payment AS payment
+        FROM 
+            form_payment
+        WHERE 
+            (fopa_status = 'payment')
+            OR 
+            (fopa_status = 'unpayment' AND fopa_payment = 'Cash on Delivery')
+        ORDER BY 
+            fopa_created_at DESC  
+        LIMIT :limit OFFSET :start
     `,
       {
         replacements: { limit, start },
@@ -35,16 +35,14 @@ const allOrders = async (req, res) => {
 
     const countResult = await sequelize.query(
       `
-      select 
-      count(*) as count
-      from form_payment
-      where fopa_status = 'payment'
-      group by 
-      fopa_id,
-      fopa_no_order_second,
-      fopa_created_at,
-      fopa_payment
-      order by fopa_created_at desc
+      SELECT 
+      COUNT(*) AS count
+      FROM 
+          form_payment
+      WHERE 
+          (fopa_status = 'payment')
+          OR 
+          (fopa_status = 'unpayment' AND fopa_payment = 'Cash on Delivery')
       `,
       {
         type: sequelize.QueryTypes.SELECT,
@@ -90,25 +88,26 @@ const detailOrder = async (req, res) => {
   try {
     const [result] = await sequelize.query(
       `
-          select 
-          a.fopa_id,
-          a.fopa_ongkir,
-          a.fopa_payment,
-          a.fopa_image_transaction,
-          a.fopa_rek,
-          a.fopa_start_date,
-          a.fopa_end_date,
-          a.fopa_status,
-          b.add_personal_name,
-          b.add_phone_number,
-          b.add_address,
-          b.add_village,
-          b.add_mark
-          from form_payment a
-          inner join address b on b.add_user_id = a.fopa_user_id
-          where fopa_status = 'payment' 
-          and add_mark_default = 'default'
-          and fopa_id = :id;
+      select 
+      a.fopa_id,
+      a.fopa_ongkir,
+      a.fopa_payment,
+      a.fopa_image_transaction,
+      a.fopa_rek,
+      a.fopa_start_date,
+      a.fopa_end_date,
+      a.fopa_status,
+      b.add_personal_name,
+      b.add_phone_number,
+      b.add_address,
+      b.add_village,
+      b.add_mark
+      from form_payment a
+      inner join address b on b.add_user_id = a.fopa_user_id
+      where (fopa_status = 'payment') 
+      or (fopa_status = 'unpayment' AND fopa_payment = 'Cash on Delivery')
+      and (add_mark_default = 'default')
+      and fopa_id = :id;
           `,
       {
         replacements: { id: req.params.id },

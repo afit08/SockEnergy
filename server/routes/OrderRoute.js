@@ -5,31 +5,31 @@ import authJWT from '../helpers/authJWT';
 const router = Router();
 
 router.get(
-  '/allOrders',
+  '/admin/allOrders',
   authJWT.ensureAdmin,
   IndexController.OrderController.allOrders,
 );
 
 router.get(
-  '/detailOrders/:id',
+  '/admin/detailOrders/:id',
   authJWT.ensureAdmin,
   IndexController.OrderController.detailOrder,
 );
 
 router.post(
-  '/updateOrders/:id',
+  '/admin/updateOrders/:id',
   authJWT.ensureAdmin,
   IndexController.OrderController.updateStatusOrder,
 );
 
 router.get(
-  '/allDoneOrders',
+  '/admin/allDoneOrders',
   authJWT.ensureAdmin,
   IndexController.OrderController.allDoneOrders,
 );
 
 router.get(
-  '/detailDoneOrders/:id',
+  '/admin/detailDoneOrders/:id',
   authJWT.ensureAdmin,
   IndexController.OrderController.detailDoneOrder,
 );

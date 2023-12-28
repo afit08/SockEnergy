@@ -5,33 +5,50 @@ import authJWT from '../helpers/authJWT';
 
 const router = Router();
 
-router.get('/', IndexController.CategoriesController.allCategories);
+router.get(
+  '/admin/all',
+  authJWT.ensureAdmin,
+  IndexController.CategoriesController.allCategories,
+);
 router.post(
-  '/store',
+  '/admin/store',
+  authJWT.ensureAdmin,
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.CategoriesController.createCategories,
 );
-router.get('/image/:filename', UploadDownloadHelper.showProductImage);
+router.get(
+  '/admin/image/:filename',
+  authJWT.ensureAdmin,
+  UploadDownloadHelper.showProductImage,
+);
 router.post(
-  '/edit/:id',
+  '/admin/edit/:id',
+  authJWT.ensureAdmin,
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.CategoriesController.editCategories,
 );
 router.post(
-  '/editNoImage/:id',
+  '/admin/editNoImage/:id',
+  authJWT.ensureAdmin,
   IndexController.CategoriesController.editCategoriesNoImage,
 );
 router.delete(
-  '/delete/:id',
+  '/admin/delete/:id',
+  authJWT.ensureAdmin,
   IndexController.CategoriesController.deleteCategories,
 );
-router.get('/:id', IndexController.CategoriesController.detailCategories);
+router.get(
+  '/admin/:id',
+  authJWT.ensureAdmin,
+  IndexController.CategoriesController.detailCategories,
+);
 router.post(
-  '/searchCategories',
+  '/admin/searchCategories',
+  authJWT.ensureAdmin,
   IndexController.CategoriesController.allCategoriesSearch,
 );
 router.get(
-  '/detailProduct/:id',
+  '/customer/detailProduct/:id',
   authJWT.ensureCustomer,
   IndexController.CategoriesController.detailProduct,
 );
