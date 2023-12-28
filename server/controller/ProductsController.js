@@ -308,6 +308,12 @@ const detailProducts = async (req, res) => {
   try {
     const result = await req.context.models.products.findAll({
       where: { prod_id: req.params.id },
+      include: [
+        {
+          model: req.context.models.categories,
+          as: 'prod_cate',
+        },
+      ],
     });
 
     return res.status(200).json({
