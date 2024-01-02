@@ -1,19 +1,17 @@
 const axios = require('axios');
 const qs = require('qs');
 let data = qs.stringify({
-  origin: '115',
-  destination: '154',
-  weight: '1000',
-  courier: 'jne',
+  waybill: '10008197284779',
+  courier: 'anteraja',
 });
 
 let config = {
   method: 'post',
   maxBodyLength: Infinity,
-  url: `${process.env.API_COST}`,
+  url: 'https://pro.rajaongkir.com/api/waybill',
   headers: {
     'content-type': 'application/x-www-form-urlencoded',
-    key: `${process.env.KEY_ONGKIR}`,
+    key: '65358a6c1fa088be3b6fa599a7b1d0ea',
   },
   data: data,
 };

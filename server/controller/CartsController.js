@@ -469,172 +469,178 @@ const checkout = async (req, res) => {
 };
 
 const listUnpayment = async (req, res) => {
-  try {
-    const form_payment = await sequelize.query(
-      `
-        select
-        distinct
-        a.fopa_id as id,
-        a.fopa_ongkir as ongkir,
-        a.fopa_payment as payment,
-        a.fopa_rek as no_rek,
-        a.fopa_end_date as end_date,
-        a.fopa_status,
-        a.fopa_start_date,
-        a.fopa_end_date,
-        a.fopa_image_transaction,
-        a.fopa_no_order_first,
-        a.fopa_no_order_second,
-        a.fopa_image_transaction,
-        a.fopa_created_at,
-        b.cart_id,
-        b.cart_qty as qty,
-        c.prod_name,
-        c.prod_image,
-        c.prod_price
-        from form_payment a
-        inner join carts b on b.cart_fopa_id = a.fopa_id
-        inner join products c on c.prod_id = b.cart_prod_id
-        where fopa_user_id = '${req.user.user_id}'
-        and a.fopa_status = 'unpayment'
-        and b.cart_status = 'payment'
-        order by fopa_created_at DESC
-      `,
-      {
-        type: sequelize.QueryTypes.SELECT,
-      },
-    );
+  const form_payment = await sequelize.query(
+    `
+      select
+      distinct
+      a.fopa_id as id,
+      a.fopa_ongkir as ongkir,
+      a.fopa_payment as payment,
+      a.fopa_rek as no_rek,
+      a.fopa_end_date as end_date,
+      a.fopa_status,
+      a.fopa_start_date,
+      a.fopa_end_date,
+      a.fopa_image_transaction,
+      a.fopa_no_order_first,
+      a.fopa_no_order_second,
+      a.fopa_image_transaction,
+      a.fopa_created_at,
+      b.add_personal_name,
+      b.add_phone_number,
+      b.add_address,
+      b.add_village,
+      b.add_mark
+      from form_payment a
+      inner join address b on b.add_user_id = a.fopa_user_id
+      inner join carts c on c.cart_fopa_id = a.fopa_id
+      where fopa_user_id = '${req.user.user_id}'
+      and a.fopa_status = 'unpayment'
+      and c.cart_status = 'payment'
+      order by fopa_created_at DESC
+    `,
+    {
+      type: sequelize.QueryTypes.SELECT,
+    },
+  );
 
-    const address = await req.context.models.address.findOne({
-      where: {
-        add_user_id: req.user.user_id,
-        add_mark_default: 'default',
-      },
-    });
+  const result = [];
+  for (let index = 0; index < form_payment.length; index++) {
+    const village = geografis.getVillage(form_payment[index].add_village);
+    // const timeZone = 'Asia/Jakarta';
+    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+    const endDate = moment
+      .utc(form_payment[index].end_date)
+      .format('DD-MM-YYYY HH:mm:ss');
 
-    const village = geografis.getVillage(address.add_village);
+    if (startDate >= endDate) {
+      const cancel = await req.context.models.form_payment.update(
+        {
+          fopa_status: 'cancel',
+        },
+        {
+          where: { fopa_status: 'unpayment', fopa_user_id: req.user.user_id },
+        },
+      );
+      const data = {
+        message: 'Send Cancel',
+        data: cancel,
+      };
+      result.push(data);
+    } else if (form_payment[index].fopa_status == 'payment') {
+      const data = {
+        message: 'No Data',
+        data: [],
+      };
+      result.push(data);
+    } else {
+      const data_product = await sequelize.query(
+        `
+          select 
+          a.cart_id,
+          a.cart_qty,
+          b.prod_name,
+          b.prod_image,
+          b.prod_price
+          from carts a
+          inner join products b on b.prod_id = a.cart_prod_id
+          where cart_fopa_id = :id
+        `,
+        {
+          replacements: { id: form_payment[index].id },
+          type: sequelize.QueryTypes.SELECT,
+        },
+      );
 
-    const data_address = [
-      {
-        personal_name: address.add_personal_name,
-        phone_number: address.add_phone_number,
-        address: address.add_address,
-        area:
-          'Kelurahan ' +
-          village.village +
-          ' ' +
-          'Kecamatan ' +
-          village.district +
-          ' ' +
-          village.city +
-          ' ' +
-          village.province +
-          ' ' +
-          village.postal,
-      },
-    ];
-
-    const data_cart = [];
-    for (let index = 0; index < form_payment.length; index++) {
-      const timeZone = 'Asia/Jakarta';
-      const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
-      const endDate = moment
-        .utc(form_payment[index].end_date)
-        .format('DD-MM-YYYY HH:mm:ss');
-
-      if (startDate >= endDate) {
-        const cancel = await req.context.models.form_payment.update(
-          {
-            fopa_status: 'cancel',
-          },
-          {
-            where: { fopa_status: 'unpayment', fopa_user_id: req.user.user_id },
-          },
-        );
+      const data_products = [];
+      for (let a = 0; a < data_product.length; a++) {
         const data = {
-          message: 'Send Cancel',
-          data: cancel,
+          id: data_product[a].cart_id,
+          qty: data_product[a].cart_qty,
+          name: data_product[a].prod_name,
+          image: data_product[a].prod_image,
+          price: data_product[a].prod_price,
+          total: data_product[a].cart_qty * data_product[a].prod_price,
         };
-        data_cart.push(data);
-      } else if (form_payment[index].fopa_status == 'payment') {
+
+        data_products.push(data);
+      }
+      const totalAll = data_products.reduce(
+        (acc, current) => acc + current.total,
+        0,
+      );
+      if (form_payment[index].payment == 'Cash on Delivery') {
         const data = {
-          message: 'No Data',
-          data: [],
+          fopa_id: form_payment[index].id,
+          status: form_payment[index].fopa_status,
+          ongkir: form_payment[index].ongkir,
+          payment: 'Waiting Confirm',
+          no_rek: form_payment[index].no_rek,
+          start_date: form_payment[index].fopa_start_date,
+          end_date: form_payment[index].fopa_end_date,
+          image_transaction: form_payment[index].fopa_image_transaction,
+          order_number:
+            form_payment[index].fopa_no_order_second +
+            form_payment[index].fopa_no_order_first,
+          totalAll: totalAll,
+          personal_name: form_payment[index].add_personal_name,
+          phone_number: form_payment[index].add_phone_number,
+          address: form_payment[index].add_address,
+          area:
+            'Kelurahan ' +
+            village.village +
+            ' ' +
+            'Kecamatan ' +
+            village.district +
+            ' ' +
+            village.city +
+            ' ' +
+            village.province +
+            ' ' +
+            village.postal,
+          products: data_products,
         };
-        data_cart.push(data);
+        result.push(data);
       } else {
         const data = {
-          id: form_payment[index].cart_id,
-          qty: form_payment[index].qty,
-          prod_name: form_payment[index].prod_name,
-          prod_image: form_payment[index].prod_image,
-          prod_price: form_payment[index].prod_price,
-          total: form_payment[index].qty * form_payment[index].prod_price,
+          fopa_id: form_payment[index].id,
+          status: form_payment[index].fopa_status,
+          ongkir: form_payment[index].ongkir,
+          payment: form_payment[index].payment,
+          no_rek: form_payment[index].no_rek,
+          start_date: form_payment[index].fopa_start_date,
+          end_date: form_payment[index].fopa_end_date,
+          image_transaction: form_payment[index].fopa_image_transaction,
+          order_number:
+            form_payment[index].fopa_no_order_second +
+            form_payment[index].fopa_no_order_first,
+          totalAll: totalAll,
+          personal_name: form_payment[index].add_personal_name,
+          phone_number: form_payment[index].add_phone_number,
+          address: form_payment[index].add_address,
+          area:
+            'Kelurahan ' +
+            village.village +
+            ' ' +
+            'Kecamatan ' +
+            village.district +
+            ' ' +
+            village.city +
+            ' ' +
+            village.province +
+            ' ' +
+            village.postal,
+          products: data_products,
         };
-        data_cart.push(data);
+        result.push(data);
       }
     }
-
-    const totalAll = data_cart.reduce((acc, current) => acc + current.total, 0);
-
-    const data_payment = {
-      fopa_id: form_payment[0].id,
-      status: form_payment[0].fopa_status,
-      ongkir: form_payment[0].ongkir,
-      payment: form_payment[0].payment,
-      no_rek: form_payment[0].no_rek,
-      start_date: moment
-        .utc(form_payment[0].fopa_start_date)
-        .format('DD-MM-YYYY HH:mm:ss'),
-      end_date: moment
-        .utc(form_payment[0].fopa_end_date)
-        .format('DD-MM-YYYY HH:mm:ss'),
-      status: form_payment[0].fopa_status,
-      image_transaction: form_payment[0].fopa_image_transaction,
-      order_number:
-        form_payment[0].fopa_no_order_second +
-        form_payment[0].fopa_no_order_first,
-      totalAll: totalAll,
-    };
-    const data = {
-      id: data_cart[0].id,
-      qty: data_cart[0].qty,
-      prod_name: data_cart[0].prod_name,
-      prod_image: data_cart[0].prod_image,
-      prod_price: data_cart[0].prod_price,
-      total: data_cart[0].total,
-      fopa_id: data_payment.fopa_id,
-      status: data_payment.status,
-      ongkir: data_payment.ongkir,
-      payment: data_payment.payment,
-      no_rek: data_payment.no_rek,
-      start_date: data_payment.start_date,
-      end_date: data_payment.end_date,
-      image_transaction: data_payment.image_transaction,
-      order_number: data_payment.order_number,
-      totalAll: data_payment.totalAll,
-      personal_name: data_address[0].personal_name,
-      phone_number: data_address[0].phone_number,
-      address: data_address[0].address,
-      area: data_address[0].area,
-    };
-    const result = [data];
-    return res.status(200).json({
-      message: 'Show form payment',
-      data: result,
-    });
-  } catch (error) {
-    if (error.message == "Cannot read properties of undefined (reading 'id')") {
-      return res.status(200).json({
-        message: 'Show form payment',
-        data: [],
-      });
-    } else {
-      return res.status(404).json({
-        message: error.message,
-      });
-    }
   }
+
+  return res.status(200).json({
+    message: 'Show form payment',
+    data: result,
+  });
 };
 
 const listPayment = async (req, res) => {
