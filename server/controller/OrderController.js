@@ -178,7 +178,7 @@ const detailOrder = async (req, res) => {
         village.postal,
       add_mark: result.add_mark,
       totalAll: totalAll,
-      products: data_product,
+      products: data_products,
     };
 
     return res.status(200).json({

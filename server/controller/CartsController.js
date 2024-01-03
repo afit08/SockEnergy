@@ -958,6 +958,7 @@ const detailPayment = async (req, res) => {
         d.prod_name as product_name,
         d.prod_image as product_image,
         d.prod_price as product_price,
+        e.fopa_id,
         e.fopa_ongkir as ongkir_cost,
         e.fopa_payment as ongkir_payment,
         e.fopa_image_transaction as bukti,
@@ -969,7 +970,7 @@ const detailPayment = async (req, res) => {
         left join address c on c.add_user_id = b.user_id
         left join products d on d.prod_id = a.cart_prod_id
         left join form_payment e on e.fopa_id = a.cart_fopa_id
-        where cart_id = :id
+        where fopa_id = :id
       `,
       {
         replacements: { id: req.params.id },
