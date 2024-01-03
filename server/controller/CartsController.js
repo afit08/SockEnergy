@@ -409,11 +409,14 @@ const checkout = async (req, res) => {
         kota.push(data);
       }
     }
+
     let data = qs.stringify({
       origin: '115',
+      originType: 'city',
       destination: `${kota[0].city_id}`,
+      destinationType: 'city',
       weight: `${weight}`,
-      courier: 'jne',
+      courier: 'anteraja',
     });
 
     let cost = {
@@ -426,8 +429,10 @@ const checkout = async (req, res) => {
       },
       data: data,
     };
+
     const responsez = await axios(cost);
     const ongkir = responsez.data.rajaongkir.results;
+
     const data_ongkir = ongkir[0].costs;
     const data_ongkirs = [];
     for (let a = 0; a < data_ongkir.length; a++) {
@@ -444,7 +449,6 @@ const checkout = async (req, res) => {
       }
     }
 
-    console.log(req.user.user_id);
     const resultz = [];
     if (cart[0].cart_status == 'unpayment') {
       const results = {
