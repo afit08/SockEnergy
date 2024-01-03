@@ -559,6 +559,7 @@ const listUnpayment = async (req, res) => {
       const data_products = [];
       for (let a = 0; a < data_product.length; a++) {
         const data = {
+          fopa_id: form_payment[index].id,
           id: data_product[a].cart_id,
           qty: data_product[a].cart_qty,
           name: data_product[a].prod_name,
