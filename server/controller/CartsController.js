@@ -663,58 +663,180 @@ const listUnpayment = async (req, res) => {
 };
 
 const listPayment = async (req, res) => {
-  try {
-    const result = await sequelize.query(
+  const form_payment = await sequelize.query(
+    `
+      select
+      distinct
+      a.fopa_id as id,
+      a.fopa_ongkir as ongkir,
+      a.fopa_payment as payment,
+      a.fopa_rek as no_rek,
+      a.fopa_end_date as end_date,
+      a.fopa_status,
+      a.fopa_start_date,
+      a.fopa_end_date,
+      a.fopa_image_transaction,
+      a.fopa_no_order_first,
+      a.fopa_no_order_second,
+      a.fopa_image_transaction,
+      a.fopa_created_at,
+      b.add_personal_name,
+      b.add_phone_number,
+      b.add_address,
+      b.add_village,
+      b.add_mark
+      from form_payment a
+      inner join address b on b.add_user_id = a.fopa_user_id
+      inner join carts c on c.cart_fopa_id = a.fopa_id
+      where fopa_user_id = '${req.user.user_id}'
+      and a.fopa_status = 'payment'
+      and c.cart_status = 'done'
+      order by fopa_created_at DESC
+    `,
+    {
+      type: sequelize.QueryTypes.SELECT,
+    },
+  );
+
+  const result = [];
+  for (let index = 0; index < form_payment.length; index++) {
+    const village = geografis.getVillage(form_payment[index].add_village);
+    // const timeZone = 'Asia/Jakarta';
+    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+    const endDate = moment
+      .utc(form_payment[index].end_date)
+      .format('DD-MM-YYYY HH:mm:ss');
+
+    const data_product = await sequelize.query(
       `
-        select 
-        c.prod_id,
-        c.prod_name as name,
-        c.prod_price as price,
-        c.prod_image as image,
-        a.fopa_no_order_first as first_num,
-        a.fopa_no_order_second as second_num,
-        a.fopa_ongkir as ongkir,
-        b.cart_id,
-        b.cart_qty as qty,
-        (b.cart_qty * c.prod_price) as total 
-        from form_payment a
-        left join carts b on b.cart_fopa_id = a.fopa_id 
-        left join products c on c.prod_id = b.cart_prod_id
-        where fopa_status = 'payment'
-        and cart_status = 'done'
-        and fopa_user_id = '${req.user.user_id}'
-        order by fopa_created_at DESC
-      `,
+          select 
+          a.cart_id,
+          a.cart_qty,
+          b.prod_name,
+          b.prod_image,
+          b.prod_price
+          from carts a
+          inner join products b on b.prod_id = a.cart_prod_id
+          where cart_fopa_id = :id
+        `,
       {
+        replacements: { id: form_payment[index].id },
         type: sequelize.QueryTypes.SELECT,
       },
     );
 
-    const results = [];
-    for (let index = 0; index < result.length; index++) {
+    const data_products = [];
+    for (let a = 0; a < data_product.length; a++) {
       const data = {
-        id_prod: result[index].prod_id,
-        name: result[index].name,
-        image: result[index].image,
-        order_number: result[index].second_num + result[index].first_num,
-        id_cart: result[index].cart_id,
-        qty: result[index].qty,
-        ongkir: result[index].ongkir,
-        total: result[index].total,
+        fopa_id: form_payment[index].id,
+        id: data_product[a].cart_id,
+        qty: data_product[a].cart_qty,
+        name: data_product[a].prod_name,
+        image: data_product[a].prod_image,
+        price: data_product[a].prod_price,
+        total: data_product[a].cart_qty * data_product[a].prod_price,
       };
-      results.push(data);
-    }
 
-    return res.status(200).json({
-      message: 'List Payment',
-      data: results,
-    });
-  } catch (error) {
-    return res.status(404).json({
-      message: error.message,
-    });
+      data_products.push(data);
+    }
+    const totalAll = data_products.reduce(
+      (acc, current) => acc + current.total,
+      0,
+    );
+
+    const data = {
+      fopa_id: form_payment[index].id,
+      status: form_payment[index].fopa_status,
+      ongkir: form_payment[index].ongkir,
+      payment: form_payment[index].payment,
+      no_rek: form_payment[index].no_rek,
+      start_date: form_payment[index].fopa_start_date,
+      end_date: form_payment[index].fopa_end_date,
+      image_transaction: form_payment[index].fopa_image_transaction,
+      order_number:
+        form_payment[index].fopa_no_order_second +
+        form_payment[index].fopa_no_order_first,
+      totalAll: totalAll,
+      personal_name: form_payment[index].add_personal_name,
+      phone_number: form_payment[index].add_phone_number,
+      address: form_payment[index].add_address,
+      area:
+        'Kelurahan ' +
+        village.village +
+        ' ' +
+        'Kecamatan ' +
+        village.district +
+        ' ' +
+        village.city +
+        ' ' +
+        village.province +
+        ' ' +
+        village.postal,
+      products: data_products,
+    };
+
+    result.push(data);
   }
+
+  return res.status(200).json({
+    message: 'List Payment',
+    data: result,
+  });
 };
+
+// const listPayment = async (req, res) => {
+//   try {
+//     const result = await sequelize.query(
+//       `
+//         select
+//         c.prod_id,
+//         c.prod_name as name,
+//         c.prod_price as price,
+//         c.prod_image as image,
+//         a.fopa_no_order_first as first_num,
+//         a.fopa_no_order_second as second_num,
+//         a.fopa_ongkir as ongkir,
+//         b.cart_id,
+//         b.cart_qty as qty,
+//         (b.cart_qty * c.prod_price) as total
+//         from form_payment a
+//         left join carts b on b.cart_fopa_id = a.fopa_id
+//         left join products c on c.prod_id = b.cart_prod_id
+//         where fopa_status = 'payment'
+//         and cart_status = 'done'
+//         and fopa_user_id = '${req.user.user_id}'
+//         order by fopa_created_at DESC
+//       `,
+//       {
+//         type: sequelize.QueryTypes.SELECT,
+//       },
+//     );
+
+//     const results = [];
+//     for (let index = 0; index < result.length; index++) {
+//       const data = {
+//         id_prod: result[index].prod_id,
+//         name: result[index].name,
+//         image: result[index].image,
+//         order_number: result[index].second_num + result[index].first_num,
+//         id_cart: result[index].cart_id,
+//         qty: result[index].qty,
+//         ongkir: result[index].ongkir,
+//         total: result[index].total,
+//       };
+//       results.push(data);
+//     }
+
+//     return res.status(200).json({
+//       message: 'List Payment',
+//       data: results,
+//     });
+//   } catch (error) {
+//     return res.status(404).json({
+//       message: error.message,
+//     });
+//   }
+// };
 
 const uploadPayment = async (req, res) => {
   const { files, fields } = req.fileAttrb;
@@ -989,6 +1111,9 @@ const detailPayment = async (req, res) => {
         d.prod_image as product_image,
         d.prod_price as product_price,
         e.fopa_id,
+        e.fopa_desc_ongkir as ongkir_name,
+        e.fopa_etd_ongkir as ongkir_etd,
+        e.fopa_number_resi as resi,
         e.fopa_ongkir as ongkir_cost,
         e.fopa_payment as ongkir_payment,
         e.fopa_image_transaction as bukti,
@@ -1029,7 +1154,7 @@ const detailPayment = async (req, res) => {
     };
 
     let waybill = qs.stringify({
-      waybill: '10008197284779',
+      waybill: `${data.resi}`,
       courier: 'anteraja',
     });
 
@@ -1053,31 +1178,44 @@ const detailPayment = async (req, res) => {
       const data = {
         name: track[index].city_name,
         desc: track[index].manifest_description,
-        date: track[index].manifest_date,
-        time: track[index].manifest_time,
+        datetime: track[index].manifest_date + ' ' + track[index].manifest_time,
+        // time: track[index].manifest_time,
       };
 
       data_tracking.push(data);
     }
 
-    const data_newOrder = {
-      name: 'Pesanan Dibuat',
-      desc: 'Pesanan Dibuat',
-      date: moment.utc().format('DD-MM-YYYY'),
-      time: moment.utc().format('HH:mm:ss'),
-    };
+    const shipper = await req.context.models.tracking_shipper.findAll({
+      where: { ts_fopa_id: req.params.id },
+    });
 
-    const data_packing = {
-      name: 'Pesanan Dikemas',
-      desc: 'Penjual telah mengatur pengiriman, Menunggu pesanan diserahkan ke pihak jasa kirim',
-      date: moment.utc().format('DD-MM-YYYY'),
-      time: moment.utc().format('HH:mm:ss'),
-    };
+    const tracking_data = [];
+    for (let index = 0; index < shipper.length; index++) {
+      const data = {
+        name: shipper[index].ts_name,
+        desc: shipper[index].ts_desc,
+        datetime: shipper[index].ts_date + ' ' + shipper[index].ts_time,
+        // time: track[index].manifest_time,
+      };
+
+      data_tracking.push(data);
+    }
+    const tracking = [...tracking_data, ...data_tracking];
+
+    // console.log(
+    //   tracking.sort((p1, p2) =>
+    //     p1.datetime > p2.datetime ? 1 : p1.datetime < p2.datetime ? -1 : 0,
+    //   ),
+    // );
 
     const data_waybill = {
       courier_name: result_waybill.summary.courier_name,
       number_resi: result_waybill.summary.waybill_number,
-      tracking: [data_newOrder, data_packing, ...data_tracking],
+      estimasi: data.ongkir_etd,
+      tracking: tracking.sort((p1, p2) =>
+        p1.datetime > p2.datetime ? 1 : p1.datetime < p2.datetime ? -1 : 0,
+      ),
+      // tracking: [data_newOrder, data_packing, ...data_tracking],
     };
 
     const data_shipment = { data_waybill };
