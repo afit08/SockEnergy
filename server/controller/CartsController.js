@@ -12,7 +12,7 @@ const allCart = async (req, res) => {
   try {
     const result = await req.context.models.carts.findAll({
       where: { cart_status: 'unpayment', cart_user_id: req.user.user_id },
-      order: [['created_at', 'desc']],
+      order: [['cart_created_at', 'desc']],
       include: [
         {
           model: req.context.models.products,

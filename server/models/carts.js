@@ -44,12 +44,22 @@ export default class carts extends Model {
             key: 'fopa_id',
           },
         },
+        cart_created_at: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          defaultValue: Sequelize.Sequelize.fn('now'),
+        },
+        cart_updated_at: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          defaultValue: Sequelize.Sequelize.fn('now'),
+        },
       },
       {
         sequelize,
         tableName: 'carts',
         schema: 'public',
-        timestamps: true,
+        timestamps: false,
         indexes: [
           {
             name: 'cart_id_pk',
