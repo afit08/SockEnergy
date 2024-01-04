@@ -49,7 +49,7 @@ export default class carts extends Model {
         sequelize,
         tableName: 'carts',
         schema: 'public',
-        timestamps: false,
+        timestamps: true,
         indexes: [
           {
             name: 'cart_id_pk',
