@@ -49,7 +49,7 @@ const allProducts = async (req, res) => {
       cate_name,
       cate_created_at,
       cate_image
-        ORDER BY created_at DESC
+        ORDER BY prod_created_at DESC
       LIMIT :limit OFFSET :start
       `,
       {
@@ -76,7 +76,7 @@ const allProducts = async (req, res) => {
         cate_name,
         cate_created_at,
         cate_image
-        ORDER BY created_at DESC
+        ORDER BY prod_created_at DESC
       `,
       {
         type: Sequelize.QueryTypes.SELECT,
