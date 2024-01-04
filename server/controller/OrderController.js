@@ -1,5 +1,6 @@
 const sequelize = require('../helpers/queryConn');
 const geografis = require('geografis');
+const moment = require('moment');
 
 const allOrders = async (req, res) => {
   try {
@@ -193,17 +194,34 @@ const detailOrder = async (req, res) => {
 };
 
 const updateStatusOrder = async (req, res) => {
-  // const transaction = await sequelize.transaction();
+  const { fopa_number_resi } = req.body;
+  const transaction = await sequelize.transaction();
   try {
     const result = await req.context.models.form_payment.update(
       {
         fopa_status: 'orders',
+        fopa_number_resi: fopa_number_resi,
       },
       {
         returning: true,
         where: { fopa_id: req.params.id },
       },
+      { transaction },
     );
+
+    await req.context.models.tracking_shipper.create(
+      {
+        ts_name: 'Pesanan Dikemas',
+        ts_desc:
+          'Penjual telah mengatur pengiriman, Menunggu pesanan diserahkan ke pihak jasa kirim',
+        ts_date: moment.utc().format('DD-MM-YYYY'),
+        ts_time: moment.utc().format('HH:mm:ss'),
+        ts_fopa_id: req.params.id,
+      },
+      { transaction },
+    );
+
+    await transaction.commit();
 
     return res.status(200).json({
       message: 'Update Status Orders',
@@ -383,10 +401,49 @@ const detailDoneOrder = async (req, res) => {
   }
 };
 
+const Pickup = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const result = await req.context.models.form_payment.update(
+      {
+        fopa_status: 'pickup courier',
+      },
+      {
+        returning: true,
+        where: { fopa_id: req.params.id },
+      },
+      { transaction },
+    );
+
+    await req.context.models.tracking_shipper.create(
+      {
+        ts_name: 'Pesanan telah diserahkan ke kurir',
+        ts_desc: 'Pesanan telah diserahkan ke kurir',
+        ts_date: moment.utc().format('DD-MM-YYYY'),
+        ts_time: moment.utc().format('HH:mm:ss'),
+        ts_fopa_id: req.params.id,
+      },
+      { transaction },
+    );
+
+    await transaction.commit();
+
+    return res.status(200).json({
+      message: 'Updating Pickup Courier to Tracking',
+      data: result[1][0],
+    });
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
 export default {
   allOrders,
   detailOrder,
   updateStatusOrder,
   allDoneOrders,
   detailDoneOrder,
+  Pickup,
 };

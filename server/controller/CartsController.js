@@ -111,7 +111,8 @@ const deleteCart = async (req, res) => {
 const postToPayment = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
-    const { fopa_ongkir, fopa_payment } = req.body;
+    const { fopa_ongkir, fopa_payment, fopa_desc_ongkir, fopa_etd_ongkir } =
+      req.body;
     const startDate = moment().format('DD-MM-YYYY hh:mm:ss');
     const endDate = moment().add(1, 'days').format('DD-MM-YYYY hh:mm:ss');
     const date = moment().format('DDMMYY');
@@ -120,6 +121,8 @@ const postToPayment = async (req, res) => {
         fopa_user_id: req.params.id,
         fopa_ongkir: fopa_ongkir,
         fopa_payment: fopa_payment,
+        fopa_desc_ongkir: fopa_desc_ongkir,
+        fopa_etd_ongkir: fopa_etd_ongkir,
         fopa_start_date: moment(startDate, 'DD-MM-YYYY hh:mm:ss'),
         fopa_end_date: moment(endDate, 'DD-MM-YYYY hh:mm:ss'),
         fopa_rek: '123456789',
@@ -137,6 +140,17 @@ const postToPayment = async (req, res) => {
       {
         returning: true,
         where: { cart_user_id: req.params.id, cart_status: 'unpayment' },
+      },
+      { transaction },
+    );
+
+    await req.context.models.tracking_shipper.create(
+      {
+        ts_name: 'Pesanan Dibuat',
+        ts_desc: 'Pesanan Dibuat',
+        ts_date: moment.utc().format('DD-MM-YYYY'),
+        ts_time: moment.utc().format('HH:mm:ss'),
+        ts_fopa_id: form_payment.fopa_id,
       },
       { transaction },
     );
@@ -732,6 +746,17 @@ const uploadPayment = async (req, res) => {
       { transaction },
     );
 
+    await req.context.models.tracking_shipper.create(
+      {
+        ts_name: 'Bukti Pembayaran Telah Berhasil Diupload',
+        ts_desc: 'Bukti Pembayaran Telah Berhasil Diupload',
+        ts_date: moment.utc().format('DD-MM-YYYY'),
+        ts_time: moment.utc().format('HH:mm:ss'),
+        ts_fopa_id: req.params.id,
+      },
+      { transaction },
+    );
+
     await transaction.commit();
 
     return res.status(200).json({
@@ -1003,7 +1028,59 @@ const detailPayment = async (req, res) => {
         village.postal,
     };
 
-    const data_shipment = {};
+    let waybill = qs.stringify({
+      waybill: '10008197284779',
+      courier: 'anteraja',
+    });
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.API_TRACKING_PAKET}`,
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        key: `${process.env.KEY_ONGKIR}`,
+      },
+      data: waybill,
+    };
+
+    const response = await axios(config);
+    const result_waybill = response.data.rajaongkir.result;
+
+    const data_tracking = [];
+    const track = result_waybill.manifest;
+    for (let index = 0; index < track.length; index++) {
+      const data = {
+        name: track[index].city_name,
+        desc: track[index].manifest_description,
+        date: track[index].manifest_date,
+        time: track[index].manifest_time,
+      };
+
+      data_tracking.push(data);
+    }
+
+    const data_newOrder = {
+      name: 'Pesanan Dibuat',
+      desc: 'Pesanan Dibuat',
+      date: moment.utc().format('DD-MM-YYYY'),
+      time: moment.utc().format('HH:mm:ss'),
+    };
+
+    const data_packing = {
+      name: 'Pesanan Dikemas',
+      desc: 'Penjual telah mengatur pengiriman, Menunggu pesanan diserahkan ke pihak jasa kirim',
+      date: moment.utc().format('DD-MM-YYYY'),
+      time: moment.utc().format('HH:mm:ss'),
+    };
+
+    const data_waybill = {
+      courier_name: result_waybill.summary.courier_name,
+      number_resi: result_waybill.summary.waybill_number,
+      tracking: [data_newOrder, data_packing, ...data_tracking],
+    };
+
+    const data_shipment = { data_waybill };
 
     const data_product = {
       id: data.product_id,

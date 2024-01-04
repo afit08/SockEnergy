@@ -15,6 +15,7 @@ import _gender from './gender.js';
 import _payment_method from './payment_method.js';
 import _products from './products.js';
 import _roles from './roles.js';
+import _tracking_shipper from './tracking_shipper.js';
 import _users from './users.js';
 
 const sequelize = require('../helpers/queryConn.js');
@@ -33,6 +34,7 @@ const initModels = (sequelize) => {
   const payment_method = _payment_method.init(sequelize, DataTypes);
   const products = _products.init(sequelize, DataTypes);
   const roles = _roles.init(sequelize, DataTypes);
+  const tracking_shipper = _tracking_shipper.init(sequelize, DataTypes);
   const users = _users.init(sequelize, DataTypes);
 
   products.belongsTo(categories, {
@@ -40,6 +42,14 @@ const initModels = (sequelize) => {
     foreignKey: 'prod_cate_id',
   });
   categories.hasMany(products, { as: 'products', foreignKey: 'prod_cate_id' });
+  tracking_shipper.belongsTo(form_payment, {
+    as: 'ts_fopa',
+    foreignKey: 'ts_fopa_id',
+  });
+  form_payment.hasMany(tracking_shipper, {
+    as: 'tracking_shippers',
+    foreignKey: 'ts_fopa_id',
+  });
   users.belongsTo(gender, { as: 'user_gender', foreignKey: 'user_gender_id' });
   gender.hasMany(users, { as: 'users', foreignKey: 'user_gender_id' });
   carts.belongsTo(products, { as: 'cart_prod', foreignKey: 'cart_prod_id' });
@@ -73,6 +83,7 @@ const initModels = (sequelize) => {
     payment_method,
     products,
     roles,
+    tracking_shipper,
     users,
   };
 };

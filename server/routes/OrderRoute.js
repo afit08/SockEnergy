@@ -34,4 +34,9 @@ router.get(
   IndexController.OrderController.detailDoneOrder,
 );
 
+router.post(
+  '/admin/pickup/:id',
+  authJWT.ensureAdmin,
+  IndexController.OrderController.Pickup,
+);
 export default router;

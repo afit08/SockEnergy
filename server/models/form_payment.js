@@ -46,7 +46,7 @@ export default class form_payment extends Model {
           allowNull: true,
         },
         fopa_end_date: {
-          type: DataTypes.TIME,
+          type: DataTypes.DATE,
           allowNull: true,
         },
         fopa_status: {
@@ -60,6 +60,18 @@ export default class form_payment extends Model {
         },
         fopa_no_order_second: {
           type: DataTypes.STRING,
+          allowNull: true,
+        },
+        fopa_desc_ongkir: {
+          type: DataTypes.STRING(50),
+          allowNull: true,
+        },
+        fopa_etd_ongkir: {
+          type: DataTypes.STRING(50),
+          allowNull: true,
+        },
+        fopa_number_resi: {
+          type: DataTypes.STRING(50),
           allowNull: true,
         },
       },
