@@ -42,6 +42,11 @@ const initModels = (sequelize) => {
     foreignKey: 'prod_cate_id',
   });
   categories.hasMany(products, { as: 'products', foreignKey: 'prod_cate_id' });
+  carts.belongsTo(form_payment, {
+    as: 'cart_fopa',
+    foreignKey: 'cart_fopa_id',
+  });
+  form_payment.hasMany(carts, { as: 'carts', foreignKey: 'cart_fopa_id' });
   tracking_shipper.belongsTo(form_payment, {
     as: 'ts_fopa',
     foreignKey: 'ts_fopa_id',

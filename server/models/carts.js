@@ -16,6 +16,10 @@ export default class carts extends Model {
           type: DataTypes.INTEGER,
           allowNull: true,
         },
+        cart_status: {
+          type: DataTypes.STRING(50),
+          allowNull: true,
+        },
         cart_prod_id: {
           type: DataTypes.STRING(50),
           allowNull: true,
@@ -23,10 +27,6 @@ export default class carts extends Model {
             model: 'products',
             key: 'prod_id',
           },
-        },
-        cart_status: {
-          type: DataTypes.STRING(50),
-          allowNull: true,
         },
         cart_user_id: {
           type: DataTypes.STRING(50),
@@ -37,7 +37,7 @@ export default class carts extends Model {
           },
         },
         cart_fopa_id: {
-          type: DataTypes.STRING(100),
+          type: DataTypes.STRING(50),
           allowNull: true,
           references: {
             model: 'form_payment',
@@ -63,11 +63,6 @@ export default class carts extends Model {
         indexes: [
           {
             name: 'cart_id_pk',
-            unique: true,
-            fields: [{ name: 'cart_id' }],
-          },
-          {
-            name: 'carts_pkey',
             unique: true,
             fields: [{ name: 'cart_id' }],
           },
