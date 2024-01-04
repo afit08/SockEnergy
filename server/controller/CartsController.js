@@ -131,7 +131,6 @@ const postToPayment = async (req, res) => {
       },
       { transaction },
     );
-    console.log(form_payment.fopa_id);
 
     const cart = await req.context.models.carts.update(
       {
@@ -1282,7 +1281,7 @@ const listCancel = async (req, res) => {
         a.fopa_created_at,
         b.cart_id,
         b.cart_qty as qty,
-        (b.cart_qty * c.prod_price) as total 
+        (b.cart_qty::integer * c.prod_price) as total 
         from form_payment a
         left join carts b on b.cart_fopa_id = a.fopa_id 
         left join products c on c.prod_id = b.cart_prod_id
