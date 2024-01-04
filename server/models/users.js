@@ -28,13 +28,9 @@ export default class users extends Model {
           type: DataTypes.STRING(15),
           allowNull: true,
         },
-        user_role_id: {
-          type: DataTypes.STRING(50),
+        user_birth_date: {
+          type: DataTypes.DATEONLY,
           allowNull: true,
-          references: {
-            model: 'roles',
-            key: 'role_id',
-          },
         },
         user_photo: {
           type: DataTypes.STRING(255),
@@ -44,10 +40,13 @@ export default class users extends Model {
           type: DataTypes.STRING(100),
           allowNull: true,
         },
-        user_created_at: {
-          type: DataTypes.DATE,
+        user_role_id: {
+          type: DataTypes.STRING(50),
           allowNull: true,
-          defaultValue: Sequelize.Sequelize.fn('now'),
+          references: {
+            model: 'roles',
+            key: 'role_id',
+          },
         },
         user_gender_id: {
           type: DataTypes.STRING(50),
@@ -57,9 +56,15 @@ export default class users extends Model {
             key: 'gender_id',
           },
         },
-        user_birth_date: {
-          type: DataTypes.DATEONLY,
+        user_created_at: {
+          type: DataTypes.DATE,
           allowNull: true,
+          defaultValue: Sequelize.Sequelize.fn('now'),
+        },
+        user_updated_at: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          defaultValue: Sequelize.Sequelize.fn('now'),
         },
       },
       {
@@ -69,7 +74,7 @@ export default class users extends Model {
         timestamps: false,
         indexes: [
           {
-            name: 'user_id_pk',
+            name: 'user_id',
             unique: true,
             fields: [{ name: 'user_id' }],
           },

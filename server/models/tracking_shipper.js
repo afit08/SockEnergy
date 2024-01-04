@@ -41,6 +41,11 @@ export default class tracking_shipper extends Model {
           allowNull: true,
           defaultValue: Sequelize.Sequelize.fn('now'),
         },
+        ts_updated_at: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          defaultValue: Sequelize.Sequelize.fn('now'),
+        },
       },
       {
         sequelize,
@@ -49,7 +54,7 @@ export default class tracking_shipper extends Model {
         timestamps: false,
         indexes: [
           {
-            name: 'ts_id_pk',
+            name: 'ts_id',
             unique: true,
             fields: [{ name: 'ts_id' }],
           },

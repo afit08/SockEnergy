@@ -13,7 +13,7 @@ export default class carts extends Model {
           primaryKey: true,
         },
         cart_qty: {
-          type: DataTypes.INTEGER,
+          type: DataTypes.STRING(50),
           allowNull: true,
         },
         cart_status: {
@@ -62,7 +62,7 @@ export default class carts extends Model {
         timestamps: false,
         indexes: [
           {
-            name: 'cart_id_pk',
+            name: 'cart_id',
             unique: true,
             fields: [{ name: 'cart_id' }],
           },

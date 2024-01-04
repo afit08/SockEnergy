@@ -131,8 +131,9 @@ const postToPayment = async (req, res) => {
       },
       { transaction },
     );
+    console.log(form_payment.fopa_id);
 
-    await req.context.models.carts.update(
+    const cart = await req.context.models.carts.update(
       {
         cart_status: 'payment',
         cart_fopa_id: form_payment.fopa_id,
@@ -143,6 +144,7 @@ const postToPayment = async (req, res) => {
       },
       { transaction },
     );
+    console.log(cart);
 
     await req.context.models.tracking_shipper.create(
       {

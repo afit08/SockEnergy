@@ -28,5 +28,6 @@ router.post(
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.UserController.updateUsersImage,
 );
+router.post('/createGender', IndexController.UserController.createGender);
 
 export default router;
