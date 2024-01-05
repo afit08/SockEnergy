@@ -72,6 +72,11 @@ router.post(
   authJWT.ensureCustomer,
   IndexController.CartsController.sendCancel,
 );
+router.get(
+  '/listDelivery',
+  authJWT.ensureCustomer,
+  IndexController.CartsController.listDelivery,
+);
 
 // Admin
 router.get(

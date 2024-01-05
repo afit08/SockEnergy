@@ -5,8 +5,6 @@ const moment = require('moment');
 require('dotenv').config();
 const axios = require('axios');
 const qs = require('qs');
-// const { nanoid } = require('nanoid');
-// import { nanoid } from 'nanoid';
 
 const allCart = async (req, res) => {
   try {
@@ -599,9 +597,7 @@ const listUnpayment = async (req, res) => {
           start_date: form_payment[index].fopa_start_date,
           end_date: form_payment[index].fopa_end_date,
           image_transaction: form_payment[index].fopa_image_transaction,
-          order_number:
-            form_payment[index].fopa_no_order_second +
-            form_payment[index].fopa_no_order_first,
+          order_number: form_payment[index].fopa_no_order_second,
           totalAll: totalAll,
           personal_name: form_payment[index].add_personal_name,
           phone_number: form_payment[index].add_phone_number,
@@ -631,9 +627,7 @@ const listUnpayment = async (req, res) => {
           start_date: form_payment[index].fopa_start_date,
           end_date: form_payment[index].fopa_end_date,
           image_transaction: form_payment[index].fopa_image_transaction,
-          order_number:
-            form_payment[index].fopa_no_order_second +
-            form_payment[index].fopa_no_order_first,
+          order_number: form_payment[index].fopa_no_order_second,
           totalAll: totalAll,
           personal_name: form_payment[index].add_personal_name,
           phone_number: form_payment[index].add_phone_number,
@@ -754,9 +748,7 @@ const listPayment = async (req, res) => {
       start_date: form_payment[index].fopa_start_date,
       end_date: form_payment[index].fopa_end_date,
       image_transaction: form_payment[index].fopa_image_transaction,
-      order_number:
-        form_payment[index].fopa_no_order_second +
-        form_payment[index].fopa_no_order_first,
+      order_number: form_payment[index].fopa_no_order_second,
       totalAll: totalAll,
       personal_name: form_payment[index].add_personal_name,
       phone_number: form_payment[index].add_phone_number,
@@ -784,60 +776,6 @@ const listPayment = async (req, res) => {
     data: result,
   });
 };
-
-// const listPayment = async (req, res) => {
-//   try {
-//     const result = await sequelize.query(
-//       `
-//         select
-//         c.prod_id,
-//         c.prod_name as name,
-//         c.prod_price as price,
-//         c.prod_image as image,
-//         a.fopa_no_order_first as first_num,
-//         a.fopa_no_order_second as second_num,
-//         a.fopa_ongkir as ongkir,
-//         b.cart_id,
-//         b.cart_qty as qty,
-//         (b.cart_qty * c.prod_price) as total
-//         from form_payment a
-//         left join carts b on b.cart_fopa_id = a.fopa_id
-//         left join products c on c.prod_id = b.cart_prod_id
-//         where fopa_status = 'payment'
-//         and cart_status = 'done'
-//         and fopa_user_id = '${req.user.user_id}'
-//         order by fopa_created_at DESC
-//       `,
-//       {
-//         type: sequelize.QueryTypes.SELECT,
-//       },
-//     );
-
-//     const results = [];
-//     for (let index = 0; index < result.length; index++) {
-//       const data = {
-//         id_prod: result[index].prod_id,
-//         name: result[index].name,
-//         image: result[index].image,
-//         order_number: result[index].second_num + result[index].first_num,
-//         id_cart: result[index].cart_id,
-//         qty: result[index].qty,
-//         ongkir: result[index].ongkir,
-//         total: result[index].total,
-//       };
-//       results.push(data);
-//     }
-
-//     return res.status(200).json({
-//       message: 'List Payment',
-//       data: results,
-//     });
-//   } catch (error) {
-//     return res.status(404).json({
-//       message: error.message,
-//     });
-//   }
-// };
 
 const uploadPayment = async (req, res) => {
   const { files, fields } = req.fileAttrb;
@@ -1135,7 +1073,6 @@ const detailPayment = async (req, res) => {
     );
 
     const village = geografis.getVillage(data.add_village);
-
     const data_address = {
       personal_name: data.add_personal_name,
       phone_number: data.add_phone_number,
@@ -1154,112 +1091,183 @@ const detailPayment = async (req, res) => {
         village.postal,
     };
 
-    let waybill = qs.stringify({
-      waybill: `${data.resi}`,
-      courier: 'anteraja',
-    });
+    if (data.resi == null) {
+      const shipper = await req.context.models.tracking_shipper.findAll({
+        where: { ts_fopa_id: req.params.id },
+      });
 
-    let config = {
-      method: 'post',
-      maxBodyLength: Infinity,
-      url: `${process.env.API_TRACKING_PAKET}`,
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded',
-        key: `${process.env.KEY_ONGKIR}`,
-      },
-      data: waybill,
-    };
+      const tracking_data = [];
+      for (let index = 0; index < shipper.length; index++) {
+        const data = {
+          name: shipper[index].ts_name,
+          desc: shipper[index].ts_desc,
+          datetime: shipper[index].ts_date + ' ' + shipper[index].ts_time,
+        };
 
-    const response = await axios(config);
-    const result_waybill = response.data.rajaongkir.result;
-
-    const data_tracking = [];
-    const track = result_waybill.manifest;
-    for (let index = 0; index < track.length; index++) {
-      const data = {
-        name: track[index].city_name,
-        desc: track[index].manifest_description,
-        datetime: track[index].manifest_date + ' ' + track[index].manifest_time,
-        // time: track[index].manifest_time,
-      };
-
-      data_tracking.push(data);
-    }
-
-    const shipper = await req.context.models.tracking_shipper.findAll({
-      where: { ts_fopa_id: req.params.id },
-    });
-
-    const tracking_data = [];
-    for (let index = 0; index < shipper.length; index++) {
-      const data = {
-        name: shipper[index].ts_name,
-        desc: shipper[index].ts_desc,
-        datetime: shipper[index].ts_date + ' ' + shipper[index].ts_time,
-        // time: track[index].manifest_time,
-      };
-
-      data_tracking.push(data);
-    }
-    const tracking = [...tracking_data, ...data_tracking];
-
-    // console.log(
-    //   tracking.sort((p1, p2) =>
-    //     p1.datetime > p2.datetime ? 1 : p1.datetime < p2.datetime ? -1 : 0,
-    //   ),
-    // );
-
-    const data_waybill = {
-      courier_name: result_waybill.summary.courier_name,
-      number_resi: result_waybill.summary.waybill_number,
-      estimasi: data.ongkir_etd,
-      tracking: tracking.sort((p1, p2) =>
-        p1.datetime > p2.datetime ? 1 : p1.datetime < p2.datetime ? -1 : 0,
-      ),
-      // tracking: [data_newOrder, data_packing, ...data_tracking],
-    };
-
-    const data_shipment = { data_waybill };
-
-    const data_product = {
-      id: data.product_id,
-      name: data.product_name,
-      image: data.product_image,
-      price: data.product_price,
-      qty: data.product_qty,
-      status: data.status,
-      total: data.product_price * data.product_qty,
-    };
-
-    function sum(obj) {
-      var sum = 0;
-      for (var el in obj) {
-        if (obj.hasOwnProperty(el)) {
-          sum += parseFloat(obj[el]);
-        }
+        tracking_data.push(data);
       }
-      return sum;
+      const tracking = [...tracking_data];
+
+      const data_waybill = {
+        courier_name: data.ongkir_name,
+        number_resi: data.resi,
+        estimasi: data.ongkir_etd,
+        tracking: tracking.sort((p1, p2) =>
+          p1.datetime > p2.datetime ? 1 : p1.datetime < p2.datetime ? -1 : 0,
+        ),
+      };
+
+      const data_shipment = { data_waybill };
+
+      const data_product = {
+        id: data.product_id,
+        name: data.product_name,
+        image: data.product_image,
+        price: data.product_price,
+        qty: data.product_qty,
+        status: data.status,
+        total: data.product_price * data.product_qty,
+      };
+
+      function sum(obj) {
+        var sum = 0;
+        for (var el in obj) {
+          if (obj.hasOwnProperty(el)) {
+            sum += parseFloat(obj[el]);
+          }
+        }
+        return sum;
+      }
+
+      const data_total = {
+        total: data.product_price * data.product_qty,
+      };
+
+      const data_payment = {
+        ongkir: data.ongkir_cost,
+        payment_method: data.ongkir_payment,
+        bukti: data.bukti,
+        status: data.payment_status,
+        totalAll: sum(data_total) + parseInt(data.ongkir_cost),
+        order_number: data.second + data.first,
+      };
+
+      const result = {
+        data_address,
+        data_shipment,
+        data_product,
+        data_payment,
+      };
+
+      return res.status(200).json({
+        message: 'Detail Payment',
+        data: result,
+      });
+    } else {
+      let waybill = qs.stringify({
+        waybill: `${data.resi}`,
+        courier: 'anteraja',
+      });
+
+      let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${process.env.API_TRACKING_PAKET}`,
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          key: `${process.env.KEY_ONGKIR}`,
+        },
+        data: waybill,
+      };
+
+      const response = await axios(config);
+      const result_waybill = response.data.rajaongkir.result;
+
+      const data_tracking = [];
+      const track = result_waybill.manifest;
+      for (let index = 0; index < track.length; index++) {
+        const data = {
+          name: track[index].city_name,
+          desc: track[index].manifest_description,
+          datetime:
+            track[index].manifest_date + ' ' + track[index].manifest_time,
+        };
+
+        data_tracking.push(data);
+      }
+
+      const shipper = await req.context.models.tracking_shipper.findAll({
+        where: { ts_fopa_id: req.params.id },
+      });
+
+      const tracking_data = [];
+      for (let index = 0; index < shipper.length; index++) {
+        const data = {
+          name: shipper[index].ts_name,
+          desc: shipper[index].ts_desc,
+          datetime: shipper[index].ts_date + ' ' + shipper[index].ts_time,
+        };
+
+        tracking_data.push(data);
+      }
+      const tracking = [...tracking_data, ...data_tracking];
+
+      const data_waybill = {
+        courier_name: result_waybill.summary.courier_name,
+        number_resi: result_waybill.summary.waybill_number,
+        estimasi: data.ongkir_etd,
+        tracking: tracking.sort((p1, p2) =>
+          p1.datetime > p2.datetime ? 1 : p1.datetime < p2.datetime ? -1 : 0,
+        ),
+      };
+
+      const data_shipment = { data_waybill };
+
+      const data_product = {
+        id: data.product_id,
+        name: data.product_name,
+        image: data.product_image,
+        price: data.product_price,
+        qty: data.product_qty,
+        status: data.status,
+        total: data.product_price * data.product_qty,
+      };
+
+      function sum(obj) {
+        var sum = 0;
+        for (var el in obj) {
+          if (obj.hasOwnProperty(el)) {
+            sum += parseFloat(obj[el]);
+          }
+        }
+        return sum;
+      }
+
+      const data_total = {
+        total: data.product_price * data.product_qty,
+      };
+
+      const data_payment = {
+        ongkir: data.ongkir_cost,
+        payment_method: data.ongkir_payment,
+        bukti: data.bukti,
+        status: data.payment_status,
+        totalAll: sum(data_total) + parseInt(data.ongkir_cost),
+        order_number: data.second + data.first,
+      };
+
+      const result = {
+        data_address,
+        data_shipment,
+        data_product,
+        data_payment,
+      };
+
+      return res.status(200).json({
+        message: 'Detail Payment',
+        data: result,
+      });
     }
-
-    const data_total = {
-      total: data.product_price * data.product_qty,
-    };
-
-    const data_payment = {
-      ongkir: data.ongkir_cost,
-      payment_method: data.ongkir_payment,
-      bukti: data.bukti,
-      status: data.payment_status,
-      totalAll: sum(data_total) + parseInt(data.ongkir_cost),
-      order_number: data.second + data.first,
-    };
-
-    const result = { data_address, data_shipment, data_product, data_payment };
-
-    return res.status(200).json({
-      message: 'Detail Payment',
-      data: result,
-    });
   } catch (error) {
     return res.status(500).json({
       message: error.message,
@@ -1343,6 +1351,119 @@ const sendCancel = async (req, res) => {
   }
 };
 
+const listDelivery = async (req, res) => {
+  const form_payment = await sequelize.query(
+    `
+      select
+      distinct
+      a.fopa_id as id,
+      a.fopa_ongkir as ongkir,
+      a.fopa_payment as payment,
+      a.fopa_rek as no_rek,
+      a.fopa_end_date as end_date,
+      a.fopa_status,
+      a.fopa_start_date,
+      a.fopa_end_date,
+      a.fopa_image_transaction,
+      a.fopa_no_order_first,
+      a.fopa_no_order_second,
+      a.fopa_image_transaction,
+      a.fopa_created_at,
+      b.add_personal_name,
+      b.add_phone_number,
+      b.add_address,
+      b.add_village,
+      b.add_mark
+      from form_payment a
+      inner join address b on b.add_user_id = a.fopa_user_id
+      inner join carts c on c.cart_fopa_id = a.fopa_id
+      where fopa_user_id = '${req.user.user_id}'
+      and a.fopa_status = 'pickup courier'
+      and c.cart_status = 'done'
+      order by fopa_created_at DESC
+    `,
+    {
+      type: sequelize.QueryTypes.SELECT,
+    },
+  );
+
+  const result = [];
+  for (let index = 0; index < form_payment.length; index++) {
+    const village = geografis.getVillage(form_payment[index].add_village);
+    const data_product = await sequelize.query(
+      `
+          select 
+          a.cart_id,
+          a.cart_qty,
+          b.prod_name,
+          b.prod_image,
+          b.prod_price
+          from carts a
+          inner join products b on b.prod_id = a.cart_prod_id
+          where cart_fopa_id = :id
+        `,
+      {
+        replacements: { id: form_payment[index].id },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    const data_products = [];
+    for (let a = 0; a < data_product.length; a++) {
+      const data = {
+        fopa_id: form_payment[index].id,
+        id: data_product[a].cart_id,
+        qty: data_product[a].cart_qty,
+        name: data_product[a].prod_name,
+        image: data_product[a].prod_image,
+        price: data_product[a].prod_price,
+        total: data_product[a].cart_qty * data_product[a].prod_price,
+      };
+
+      data_products.push(data);
+    }
+    const totalAll = data_products.reduce(
+      (acc, current) => acc + current.total,
+      0,
+    );
+
+    const data = {
+      fopa_id: form_payment[index].id,
+      status: form_payment[index].fopa_status,
+      ongkir: form_payment[index].ongkir,
+      payment: form_payment[index].payment,
+      no_rek: form_payment[index].no_rek,
+      start_date: form_payment[index].fopa_start_date,
+      end_date: form_payment[index].fopa_end_date,
+      image_transaction: form_payment[index].fopa_image_transaction,
+      order_number: form_payment[index].fopa_no_order_second,
+      totalAll: totalAll,
+      personal_name: form_payment[index].add_personal_name,
+      phone_number: form_payment[index].add_phone_number,
+      address: form_payment[index].add_address,
+      area:
+        'Kelurahan ' +
+        village.village +
+        ' ' +
+        'Kecamatan ' +
+        village.district +
+        ' ' +
+        village.city +
+        ' ' +
+        village.province +
+        ' ' +
+        village.postal,
+      products: data_products,
+    };
+
+    result.push(data);
+  }
+
+  return res.status(200).json({
+    message: 'List Payment',
+    data: result,
+  });
+};
 export default {
   allCart,
   addCart,
@@ -1360,4 +1481,5 @@ export default {
   detailPayment,
   listCancel,
   sendCancel,
+  listDelivery,
 };
