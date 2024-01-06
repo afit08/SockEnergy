@@ -5,9 +5,21 @@ const moment = require('moment');
 require('dotenv').config();
 const axios = require('axios');
 const qs = require('qs');
+const Redis = require('ioredis');
+const redisClient = new Redis();
 
 const allCart = async (req, res) => {
   try {
+    // Check if data is in cache
+    const cachedData = await redisClient.get('allCartData');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show All Carts (Cached)',
+        data: parsedData,
+      });
+    }
+
     const result = await req.context.models.carts.findAll({
       where: { cart_status: 'unpayment', cart_user_id: req.user.user_id },
       order: [['cart_created_at', 'desc']],
@@ -31,6 +43,9 @@ const allCart = async (req, res) => {
     const sum = coba.reduce((acc, current) => acc + current.total, 0);
 
     const results = { result, sum };
+
+    // Cache the data in Redis with a TTL (time-to-live) of 60 seconds
+    await redisClient.setex('allCartData', 60, JSON.stringify(results));
 
     return res.status(200).json({
       message: 'Show All Carts',

@@ -13,6 +13,39 @@ import models, { sequelize } from './models/init-models';
 import routes from './routes/IndexRoute';
 import os from 'os';
 import cluster from 'cluster';
+import Ioredis from 'ioredis';
+
+// Create a Redis client using ioredis
+const client = new Ioredis({
+  host: '127.0.0.1',
+  port: 6379,
+  // Add any other configuration options as needed
+});
+
+client.on('error', (err) => {
+  console.error(`Redis Error: ${err}`);
+});
+
+// Example: Set a key-value pair in Redis
+client.set('exampleKey', 'Hello, Redis!', (err, reply) => {
+  if (err) {
+    console.error(`Redis Set Error: ${err}`);
+  } else {
+    console.log(`Redis Set Reply: ${reply}`);
+  }
+
+  // Example: Get the value for a key from Redis
+  client.get('exampleKey', (err, reply) => {
+    if (err) {
+      console.error(`Redis Get Error: ${err}`);
+    } else {
+      console.log(`Redis Get Reply: ${reply}`);
+    }
+
+    // Close the Redis connection when done
+    client.quit();
+  });
+});
 
 // declare port
 const port = process.env.PORT || 3000;
