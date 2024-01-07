@@ -5,20 +5,20 @@ const moment = require('moment');
 require('dotenv').config();
 const axios = require('axios');
 const qs = require('qs');
-const Redis = require('ioredis');
-const redisClient = new Redis();
+// const Redis = require('ioredis');
+// const redisClient = new Redis();
 
 const allCart = async (req, res) => {
   try {
     // Check if data is in cache
-    const cachedData = await redisClient.get('allCartData');
-    if (cachedData) {
-      const parsedData = JSON.parse(cachedData);
-      return res.status(200).json({
-        message: 'Show All Carts (Cached)',
-        data: parsedData,
-      });
-    }
+    // const cachedData = await redisClient.get('allCartData');
+    // if (cachedData) {
+    //   const parsedData = JSON.parse(cachedData);
+    //   return res.status(200).json({
+    //     message: 'Show All Carts (Cached)',
+    //     data: parsedData,
+    //   });
+    // }
 
     const result = await req.context.models.carts.findAll({
       where: { cart_status: 'unpayment', cart_user_id: req.user.user_id },
@@ -45,7 +45,7 @@ const allCart = async (req, res) => {
     const results = { result, sum };
 
     // Cache the data in Redis with a TTL (time-to-live) of 60 seconds
-    await redisClient.setex('allCartData', 60, JSON.stringify(results));
+    // await redisClient.setex('allCartData', 60, JSON.stringify(results));
 
     return res.status(200).json({
       message: 'Show All Carts',
@@ -129,6 +129,8 @@ const postToPayment = async (req, res) => {
     const startDate = moment().format('DD-MM-YYYY hh:mm:ss');
     const endDate = moment().add(1, 'days').format('DD-MM-YYYY hh:mm:ss');
     const date = moment().format('DDMMYY');
+    const randomNo = Math.floor(Math.random() * 10000);
+
     const form_payment = await req.context.models.form_payment.create(
       {
         fopa_user_id: req.params.id,
@@ -140,7 +142,7 @@ const postToPayment = async (req, res) => {
         fopa_end_date: moment(endDate, 'DD-MM-YYYY hh:mm:ss'),
         fopa_rek: '123456789',
         fopa_status: 'unpayment',
-        fopa_no_order_second: 'SE' + date,
+        fopa_no_order_second: 'SE' + date + randomNo,
       },
       { transaction },
     );

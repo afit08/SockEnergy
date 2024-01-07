@@ -1,15 +1,15 @@
 const { Sequelize } = require('sequelize');
 const sequelize = require('../helpers/queryConn.js');
-const Redis = require('ioredis');
-const redisClient = new Redis({ host: '127.0.0.1', port: 6379 });
+// const Redis = require('ioredis');
+// const redisClient = new Redis({ host: '127.0.0.1', port: 6379 });
 
-redisClient.on('error', (err) => {
-  console.error('Error connecting to Redis:', err);
-});
+// redisClient.on('error', (err) => {
+//   console.error('Error connecting to Redis:', err);
+// });
 
-redisClient.on('connect', () => {
-  console.log('Connected to Redis');
-});
+// redisClient.on('connect', () => {
+//   console.log('Connected to Redis');
+// });
 
 const createProduct = async (req, res) => {
   const { files, fields } = req.fileAttrb;
@@ -25,16 +25,21 @@ const createProduct = async (req, res) => {
       prod_weight: fields[5].value,
     });
 
-    await redisClient.setex('createProduct', 60, JSON.stringify(result));
+    // await redisClient.setex('createProduct', 60, JSON.stringify(result));
 
-    const cachedData = await redisClient.get('createProduct');
-    if (cachedData) {
-      const parsedData = JSON.parse(cachedData);
-      return res.status(200).json({
-        message: 'Create Products',
-        data: parsedData,
-      });
-    }
+    // const cachedData = await redisClient.get('createProduct');
+    // if (cachedData) {
+    //   const parsedData = JSON.parse(cachedData);
+    //   return res.status(200).json({
+    //     message: 'Create Products',
+    //     data: parsedData,
+    //   });
+    // }
+
+    return res.status(200).json({
+      message: 'Create Products',
+      data: result,
+    });
   } catch (error) {
     return res.status(404).json({ message: error.message });
   }
@@ -118,21 +123,27 @@ const allProducts = async (req, res) => {
       };
     }
 
-    await redisClient.setex(
-      'allProductData',
-      60,
-      JSON.stringify(products, pagination),
-    );
+    // await redisClient.setex(
+    //   'allProductData',
+    //   60,
+    //   JSON.stringify(products, pagination),
+    // );
 
-    const cachedData = await redisClient.get('allProductData');
-    if (cachedData) {
-      const parsedData = JSON.parse(cachedData);
-      return res.status(200).json({
-        message: 'Show All Products (Cached)',
-        data: parsedData,
-        pagination: pagination,
-      });
-    }
+    // const cachedData = await redisClient.get('allProductData');
+    // if (cachedData) {
+    //   const parsedData = JSON.parse(cachedData);
+    //   return res.status(200).json({
+    //     message: 'Show All Products (Cached)',
+    //     data: parsedData,
+    //     pagination: pagination,
+    //   });
+    // }
+
+    return res.status(200).json({
+      message: 'Show All Products (Cached)',
+      data: products,
+      pagination: pagination,
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

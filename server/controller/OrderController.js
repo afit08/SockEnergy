@@ -318,25 +318,26 @@ const detailDoneOrder = async (req, res) => {
   try {
     const [result] = await sequelize.query(
       `
-          select 
-          a.fopa_id,
-          a.fopa_ongkir,
-          a.fopa_payment,
-          a.fopa_image_transaction,
-          a.fopa_rek,
-          a.fopa_start_date,
-          a.fopa_end_date,
-          a.fopa_status,
-          b.add_personal_name,
-          b.add_phone_number,
-          b.add_address,
-          b.add_village,
-          b.add_mark
-          from form_payment a
-          inner join address b on b.add_user_id = a.fopa_user_id
-          where fopa_status = 'orders' 
-          and add_mark_default = 'default'
-          and fopa_id = :id;
+      select 
+      a.fopa_id,
+      a.fopa_ongkir,
+      a.fopa_payment,
+      a.fopa_image_transaction,
+      a.fopa_rek,
+      a.fopa_start_date,
+      a.fopa_end_date,
+      a.fopa_status,
+      b.add_personal_name,
+      b.add_phone_number,
+      b.add_address,
+      b.add_village,
+      b.add_mark
+      from form_payment a
+      inner join address b on b.add_user_id = a.fopa_user_id
+      where (fopa_status = 'orders') 
+      or (fopa_status = 'unpayment' AND fopa_payment = 'Cash on Delivery')
+      and (add_mark_default = 'default')
+      and fopa_id = :id;
           `,
       {
         replacements: { id: req.params.id },
@@ -348,6 +349,7 @@ const detailDoneOrder = async (req, res) => {
     const data_product = await sequelize.query(
       `
         select 
+        a.cart_id,
         a.cart_qty,
         b.prod_name,
         b.prod_image,
@@ -362,17 +364,35 @@ const detailDoneOrder = async (req, res) => {
       },
     );
 
+    const data_products = [];
+    for (let a = 0; a < data_product.length; a++) {
+      const data = {
+        id: data_product[a].cart_id,
+        qty: data_product[a].cart_qty,
+        name: data_product[a].prod_name,
+        image: data_product[a].prod_image,
+        price: parseFloat(data_product[a].prod_price),
+        total: parseInt(data_product[a].cart_qty * data_product[a].prod_price),
+      };
+
+      data_products.push(data);
+    }
+    const totalAll = data_products.reduce(
+      (acc, current) => acc + current.total,
+      0,
+    );
+
     const data = {
       id: result.fopa_id,
-      fopa_ongkir: result.fopa_ongkir,
+      fopa_ongkir: parseInt(result.fopa_ongkir),
       fopa_payment: result.fopa_payment,
       fopa_image_transaction: result.fopa_image_transaction,
-      fopa_rek: result.fopa_rek,
+      fopa_rek: parseInt(result.fopa_rek),
       fopa_start_date: result.fopa_start_date,
       fopa_end_date: result.fopa_end_date,
       fopa_status: result.fopa_status,
       add_personal_name: result.add_personal_name,
-      add_phone_number: result.add_phone_number,
+      add_phone_number: parseInt(result.add_phone_number),
       add_address: result.add_address,
       add_village:
         'Kelurahan ' +
@@ -387,7 +407,8 @@ const detailDoneOrder = async (req, res) => {
         ' ' +
         village.postal,
       add_mark: result.add_mark,
-      products: data_product,
+      totalAll: totalAll,
+      products: data_products,
     };
 
     return res.status(200).json({
