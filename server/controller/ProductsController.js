@@ -1,7 +1,10 @@
 const { Sequelize } = require('sequelize');
 const sequelize = require('../helpers/queryConn.js');
-// const Redis = require('ioredis');
-// const redisClient = new Redis({ host: '127.0.0.1', port: 6379 });
+const Redis = require('ioredis');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
 
 // redisClient.on('error', (err) => {
 //   console.error('Error connecting to Redis:', err);

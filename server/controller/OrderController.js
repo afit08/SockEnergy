@@ -214,8 +214,6 @@ const updateStatusOrder = async (req, res) => {
         ts_name: 'Pesanan Dikemas',
         ts_desc:
           'Penjual telah mengatur pengiriman, Menunggu pesanan diserahkan ke pihak jasa kirim',
-        ts_date: moment.utc().format('DD-MM-YYYY'),
-        ts_time: moment.utc().format('HH:mm:ss'),
         ts_fopa_id: req.params.id,
       },
       { transaction },
@@ -440,8 +438,6 @@ const Pickup = async (req, res) => {
       {
         ts_name: 'Pesanan telah diserahkan ke kurir',
         ts_desc: 'Pesanan telah diserahkan ke kurir',
-        ts_date: moment.utc().format('DD-MM-YYYY'),
-        ts_time: moment.utc().format('HH:mm:ss'),
         ts_fopa_id: req.params.id,
       },
       { transaction },

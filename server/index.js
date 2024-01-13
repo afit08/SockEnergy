@@ -15,12 +15,12 @@ import os from 'os';
 import cluster from 'cluster';
 // import Ioredis from 'ioredis';
 
-// // Create a Redis client using ioredis
-// const client = new Ioredis({
-//   host: '127.0.0.1',
-//   port: 6379,
-//   // Add any other configuration options as needed
-// });
+// Create a Redis client using ioredis
+const client = new Ioredis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+  // Add any other configuration options as needed
+});
 
 // client.on('error', (err) => {
 //   console.error(`Redis Error: ${err}`);

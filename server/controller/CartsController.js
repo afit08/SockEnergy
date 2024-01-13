@@ -158,14 +158,11 @@ const postToPayment = async (req, res) => {
       },
       { transaction },
     );
-    console.log(cart);
 
     await req.context.models.tracking_shipper.create(
       {
         ts_name: 'Pesanan Dibuat',
         ts_desc: 'Pesanan Dibuat',
-        ts_date: moment.utc().format('DD-MM-YYYY'),
-        ts_time: moment.utc().format('HH:mm:ss'),
         ts_fopa_id: form_payment.fopa_id,
       },
       { transaction },
@@ -828,8 +825,6 @@ const uploadPayment = async (req, res) => {
       {
         ts_name: 'Bukti Pembayaran Telah Berhasil Diupload',
         ts_desc: 'Bukti Pembayaran Telah Berhasil Diupload',
-        ts_date: moment.utc().format('DD-MM-YYYY'),
-        ts_time: moment.utc().format('HH:mm:ss'),
         ts_fopa_id: req.params.id,
       },
       { transaction },
