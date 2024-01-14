@@ -134,7 +134,7 @@ const detailOrder = async (req, res) => {
       from form_payment a
       inner join address b on b.add_user_id = a.fopa_user_id
       where (fopa_status = 'payment') 
-      or (fopa_status = 'unpayment' AND fopa_payment = 'Cash on Delivery')
+      or (fopa_status = 'unpayment' OR fopa_payment = 'Cash on Delivery')
       and (add_mark_default = 'default')
       and fopa_id = :id;
           `,
