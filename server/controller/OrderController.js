@@ -33,7 +33,7 @@ const allOrders = async (req, res) => {
         WHERE 
             (fopa_status = 'payment')
             OR 
-            (fopa_status = 'unpayment' AND fopa_payment = 'Cash on Delivery')
+            (fopa_status = 'unpayment' OR fopa_payment = 'Cash on Delivery')
         ORDER BY 
             fopa_created_at DESC  
         LIMIT :limit OFFSET :start
