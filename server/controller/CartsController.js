@@ -1196,12 +1196,12 @@ const detailPayment = async (req, res) => {
 
       const tracking_data = [];
       for (let index = 0; index < shipper.length; index++) {
+        const datetimes = shipper[index].ts_date + ' ' + shipper[index].ts_time;
         const data = {
           name: shipper[index].ts_name,
           desc: shipper[index].ts_desc,
-          datetime: shipper[index].ts_date + ' ' + shipper[index].ts_time,
+          datetime: moment(datetimes).format('YYYY-MM-DD HH:mm:ss'),
         };
-
         tracking_data.push(data);
       }
       const tracking = [...tracking_data];
@@ -1311,10 +1311,11 @@ const detailPayment = async (req, res) => {
 
       const tracking_data = [];
       for (let index = 0; index < shipper.length; index++) {
+        const datetimes = shipper[index].ts_date + ' ' + shipper[index].ts_time;
         const data = {
           name: shipper[index].ts_name,
           desc: shipper[index].ts_desc,
-          datetime: shipper[index].ts_date + ' ' + shipper[index].ts_time,
+          datetime: moment(datetimes).format('YYYY-MM-DD HH:mm:ss'),
         };
 
         tracking_data.push(data);
