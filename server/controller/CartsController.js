@@ -5,21 +5,22 @@ const moment = require('moment');
 require('dotenv').config();
 const axios = require('axios');
 const qs = require('qs');
-// const Redis = require('ioredis');
-// const redisClient = new Redis();
+const Redis = require('ioredis');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
+
+redisClient.on('error', (err) => {
+  console.error('Error connecting to Redis:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Connected to Redis');
+});
 
 const allCart = async (req, res) => {
   try {
-    // Check if data is in cache
-    // const cachedData = await redisClient.get('allCartData');
-    // if (cachedData) {
-    //   const parsedData = JSON.parse(cachedData);
-    //   return res.status(200).json({
-    //     message: 'Show All Carts (Cached)',
-    //     data: parsedData,
-    //   });
-    // }
-
     const result = await req.context.models.carts.findAll({
       where: { cart_status: 'unpayment', cart_user_id: req.user.user_id },
       order: [['cart_created_at', 'desc']],
@@ -44,8 +45,16 @@ const allCart = async (req, res) => {
 
     const results = { result, sum };
 
-    // Cache the data in Redis with a TTL (time-to-live) of 60 seconds
-    // await redisClient.setex('allCartData', 60, JSON.stringify(results));
+    await redisClient.setex('allCarts', 60, JSON.stringify(results));
+
+    const cachedData = await redisClient.get('allCarts');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'All Carts (Cached)',
+        data: parsedData,
+      });
+    }
 
     return res.status(200).json({
       message: 'Show All Carts',
@@ -308,6 +317,18 @@ const showPayment = async (req, res) => {
         order_number,
         totalAll,
       };
+
+      await redisClient.setex('showFormPayment', 60, JSON.stringify(result));
+
+      const cachedData = await redisClient.get('showFormPayment');
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        return res.status(200).json({
+          message: 'Show Form Payment (Cached)',
+          data: parsedData,
+        });
+      }
+
       return res.status(200).json({
         message: 'Show form payment',
         data: result,
@@ -488,6 +509,17 @@ const checkout = async (req, res) => {
       resultz.push(results);
     }
 
+    await redisClient.setex('showFormCheckout', 60, JSON.stringify(resultz));
+
+    const cachedData = await redisClient.get('showFormCheckout');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show Form Checkout (Cached)',
+        data: parsedData,
+      });
+    }
+
     return res.status(200).json({
       message: 'Show Form Checkout',
       data: resultz,
@@ -665,8 +697,19 @@ const listUnpayment = async (req, res) => {
     }
   }
 
+  await redisClient.setex('listUnpayment', 60, JSON.stringify(result));
+
+  const cachedData = await redisClient.get('listUnpayment');
+  if (cachedData) {
+    const parsedData = JSON.parse(cachedData);
+    return res.status(200).json({
+      message: 'List Unpayment (Cached)',
+      data: parsedData,
+    });
+  }
+
   return res.status(200).json({
-    message: 'Show form payment',
+    message: 'List Unpayment',
     data: result,
   });
 };
@@ -785,6 +828,17 @@ const listPayment = async (req, res) => {
     result.push(data);
   }
 
+  await redisClient.setex('listPayment', 60, JSON.stringify(result));
+
+  const cachedData = await redisClient.get('listPayment');
+  if (cachedData) {
+    const parsedData = JSON.parse(cachedData);
+    return res.status(200).json({
+      message: 'List Payment (Cached)',
+      data: parsedData,
+    });
+  }
+
   return res.status(200).json({
     message: 'List Payment',
     data: result,
@@ -871,6 +925,17 @@ const allOrders = async (req, res) => {
       },
     );
 
+    await redisClient.setex('allOrders', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('allOrders');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'All Orders (Cached)',
+        data: parsedData,
+      });
+    }
+
     return res.status(200).json({
       message: 'All Orders',
       data: result,
@@ -951,8 +1016,18 @@ const detailAllOrdersAdmin = async (req, res) => {
       });
     } else {
       const result = { data_address, form_payment };
+      await redisClient.setex('showFormPayment', 60, JSON.stringify(result));
+
+      const cachedData = await redisClient.get('showFormPayment');
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        return res.status(200).json({
+          message: 'Show Form Payment (Cached)',
+          data: parsedData,
+        });
+      }
       return res.status(200).json({
-        message: 'Show form payment',
+        message: 'Show Form Payment',
         data: result,
       });
     }
@@ -1034,6 +1109,17 @@ const detailPaymentAdmin = async (req, res) => {
       });
     } else {
       const result = { data_address, form_payment };
+
+      await redisClient.setex('detailPaymentAdmin', 60, JSON.stringify(result));
+
+      const cachedData = await redisClient.get('detailPaymentAdmin');
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        return res.status(200).json({
+          message: 'All Done Orders (Cached)',
+          data: parsedData,
+        });
+      }
       return res.status(200).json({
         message: 'Show form payment',
         data: result,
@@ -1171,6 +1257,17 @@ const detailPayment = async (req, res) => {
         data_payment,
       };
 
+      await redisClient.setex('detailPayment', 60, JSON.stringify(result));
+
+      const cachedData = await redisClient.get('detailPayment');
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        return res.status(200).json({
+          message: 'Detail Payment (Cached)',
+          data: parsedData,
+        });
+      }
+
       return res.status(200).json({
         message: 'Detail Payment',
         data: result,
@@ -1275,6 +1372,17 @@ const detailPayment = async (req, res) => {
         data_payment,
       };
 
+      await redisClient.setex('detailPayment', 60, JSON.stringify(result));
+
+      const cachedData = await redisClient.get('detailPayment');
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        return res.status(200).json({
+          message: 'Detail Payment (Cached)',
+          data: parsedData,
+        });
+      }
+
       return res.status(200).json({
         message: 'Detail Payment',
         data: result,
@@ -1327,6 +1435,17 @@ const listCancel = async (req, res) => {
         total: result[index].total,
       };
       results.push(data);
+    }
+
+    await redisClient.setex('detailCancel', 60, JSON.stringify(results));
+
+    const cachedData = await redisClient.get('detailCancel');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Detail Cancel (Cached)',
+        data: parsedData,
+      });
     }
 
     return res.status(200).json({
@@ -1469,6 +1588,17 @@ const listDelivery = async (req, res) => {
     };
 
     result.push(data);
+  }
+
+  await redisClient.setex('listPayment', 60, JSON.stringify(result));
+
+  const cachedData = await redisClient.get('listPayment');
+  if (cachedData) {
+    const parsedData = JSON.parse(cachedData);
+    return res.status(200).json({
+      message: 'List Payment (Cached)',
+      data: parsedData,
+    });
   }
 
   return res.status(200).json({

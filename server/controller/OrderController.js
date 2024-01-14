@@ -1,6 +1,18 @@
 const sequelize = require('../helpers/queryConn');
 const geografis = require('geografis');
-const moment = require('moment');
+const Redis = require('ioredis');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
+
+redisClient.on('error', (err) => {
+  console.error('Error connecting to Redis:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Connected to Redis');
+});
 
 const allOrders = async (req, res) => {
   try {
@@ -71,6 +83,22 @@ const allOrders = async (req, res) => {
         page: page - 1,
         limit: limit,
       };
+    }
+
+    await redisClient.setex(
+      'allOrders',
+      60,
+      JSON.stringify(result, pagination),
+    );
+
+    const cachedData = await redisClient.get('allOrders');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'allOrders (Cached)',
+        data: parsedData,
+        pagination: pagination,
+      });
     }
 
     return res.status(200).json({
@@ -181,6 +209,17 @@ const detailOrder = async (req, res) => {
       totalAll: totalAll,
       products: data_products,
     };
+
+    await redisClient.setex('detailOrders', 60, JSON.stringify(data));
+
+    const cachedData = await redisClient.get('detailOrders');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Detail Products (Cached)',
+        data: parsedData,
+      });
+    }
 
     return res.status(200).json({
       message: 'Detail Orders',
@@ -300,6 +339,22 @@ const allDoneOrders = async (req, res) => {
       };
     }
 
+    await redisClient.setex(
+      'allDoneOrders',
+      60,
+      JSON.stringify(result, pagination),
+    );
+
+    const cachedData = await redisClient.get('allDoneOrders');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'All Done Orders (Cached)',
+        data: parsedData,
+        pagination: pagination,
+      });
+    }
+
     return res.status(200).json({
       message: 'All Done Orders',
       data: result,
@@ -409,8 +464,19 @@ const detailDoneOrder = async (req, res) => {
       products: data_products,
     };
 
+    await redisClient.setex('detailDoneOrders', 60, JSON.stringify(data));
+
+    const cachedData = await redisClient.get('detailDoneOrders');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Detail Done Orders (Cached)',
+        data: parsedData,
+      });
+    }
+
     return res.status(200).json({
-      message: 'Detail Orders',
+      message: 'Detail Done Orders',
       data: data,
     });
   } catch (error) {

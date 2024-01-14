@@ -13,19 +13,6 @@ import models, { sequelize } from './models/init-models';
 import routes from './routes/IndexRoute';
 import os from 'os';
 import cluster from 'cluster';
-const Redis = require('ioredis');
-const redisClient = new Redis({
-  host: process.env.IP_REDIS,
-  port: process.env.PORT_REDIS,
-});
-
-redisClient.on('error', (err) => {
-  console.error('Error connecting to Redis:', err);
-});
-
-redisClient.on('connect', () => {
-  console.log('Connected to Redis');
-});
 
 // declare port
 const port = process.env.PORT || 3000;
