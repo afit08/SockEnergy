@@ -77,6 +77,11 @@ router.get(
   authJWT.ensureCustomer,
   IndexController.CartsController.listDelivery,
 );
+router.get(
+  '/listDone',
+  authJWT.ensureCustomer,
+  IndexController.CartsController.listDone,
+);
 
 // Admin
 router.get(

@@ -1438,13 +1438,13 @@ const listCancel = async (req, res) => {
       results.push(data);
     }
 
-    await redisClient.setex('detailCancel', 60, JSON.stringify(results));
+    await redisClient.setex('listCancel', 60, JSON.stringify(results));
 
-    const cachedData = await redisClient.get('detailCancel');
+    const cachedData = await redisClient.get('listCancel');
     if (cachedData) {
       const parsedData = JSON.parse(cachedData);
       return res.status(200).json({
-        message: 'Detail Cancel (Cached)',
+        message: 'List Cancel (Cached)',
         data: parsedData,
       });
     }
@@ -1501,6 +1501,7 @@ const listDelivery = async (req, res) => {
       a.fopa_no_order_second,
       a.fopa_image_transaction,
       a.fopa_created_at,
+      a.fopa_number_resi,
       b.add_personal_name,
       b.add_phone_number,
       b.add_address,
@@ -1519,7 +1520,6 @@ const listDelivery = async (req, res) => {
     },
   );
 
-  const result = [];
   for (let index = 0; index < form_payment.length; index++) {
     const village = geografis.getVillage(form_payment[index].add_village);
     const data_product = await sequelize.query(
@@ -1587,25 +1587,200 @@ const listDelivery = async (req, res) => {
         village.postal,
       products: data_products,
     };
+    console.log('test', data);
 
-    result.push(data);
-  }
-
-  await redisClient.setex('listPayment', 60, JSON.stringify(result));
-
-  const cachedData = await redisClient.get('listPayment');
-  if (cachedData) {
-    const parsedData = JSON.parse(cachedData);
-    return res.status(200).json({
-      message: 'List Payment (Cached)',
-      data: parsedData,
+    let waybill = qs.stringify({
+      waybill: `${form_payment[index].fopa_number_resi}`,
+      courier: 'anteraja',
     });
-  }
 
-  return res.status(200).json({
-    message: 'List Payment',
-    data: result,
-  });
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.API_TRACKING_PAKET}`,
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        key: `${process.env.KEY_ONGKIR}`,
+      },
+      data: waybill,
+    };
+
+    const response = await axios(config);
+    const result_waybill = response.data.rajaongkir.result;
+    if (result_waybill.delivery_status.status == 'DELIVERED') {
+      return res.status(200).json({
+        message: 'List Delivery',
+        data: [],
+      });
+    } else {
+      await redisClient.setex('listDelivery', 60, JSON.stringify(data));
+
+      const cachedData = await redisClient.get('listDelivery');
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        return res.status(200).json({
+          message: 'List Delivery (Cached)',
+          data: parsedData,
+        });
+      }
+
+      return res.status(200).json({
+        message: 'List Delivery',
+        data: data,
+      });
+    }
+  }
+};
+
+const listDone = async (req, res) => {
+  const form_payment = await sequelize.query(
+    `
+      select
+      distinct
+      a.fopa_id as id,
+      a.fopa_ongkir as ongkir,
+      a.fopa_payment as payment,
+      a.fopa_rek as no_rek,
+      a.fopa_end_date as end_date,
+      a.fopa_status,
+      a.fopa_start_date,
+      a.fopa_end_date,
+      a.fopa_image_transaction,
+      a.fopa_no_order_first,
+      a.fopa_no_order_second,
+      a.fopa_image_transaction,
+      a.fopa_created_at,
+      a.fopa_number_resi,
+      b.add_personal_name,
+      b.add_phone_number,
+      b.add_address,
+      b.add_village,
+      b.add_mark
+      from form_payment a
+      inner join address b on b.add_user_id = a.fopa_user_id
+      inner join carts c on c.cart_fopa_id = a.fopa_id
+      where fopa_user_id = '${req.user.user_id}'
+      and a.fopa_status = 'pickup courier'
+      and c.cart_status = 'done'
+      order by fopa_created_at DESC
+    `,
+    {
+      type: sequelize.QueryTypes.SELECT,
+    },
+  );
+
+  for (let index = 0; index < form_payment.length; index++) {
+    const village = geografis.getVillage(form_payment[index].add_village);
+    const data_product = await sequelize.query(
+      `
+          select 
+          a.cart_id,
+          a.cart_qty,
+          b.prod_name,
+          b.prod_image,
+          b.prod_price
+          from carts a
+          inner join products b on b.prod_id = a.cart_prod_id
+          where cart_fopa_id = :id
+        `,
+      {
+        replacements: { id: form_payment[index].id },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    const data_products = [];
+    for (let a = 0; a < data_product.length; a++) {
+      const data = {
+        fopa_id: form_payment[index].id,
+        id: data_product[a].cart_id,
+        qty: data_product[a].cart_qty,
+        name: data_product[a].prod_name,
+        image: data_product[a].prod_image,
+        price: data_product[a].prod_price,
+        total: data_product[a].cart_qty * data_product[a].prod_price,
+      };
+
+      data_products.push(data);
+    }
+    const totalAll = data_products.reduce(
+      (acc, current) => acc + current.total,
+      0,
+    );
+
+    const data = {
+      fopa_id: form_payment[index].id,
+      status: form_payment[index].fopa_status,
+      ongkir: form_payment[index].ongkir,
+      payment: form_payment[index].payment,
+      no_rek: form_payment[index].no_rek,
+      start_date: form_payment[index].fopa_start_date,
+      end_date: form_payment[index].fopa_end_date,
+      image_transaction: form_payment[index].fopa_image_transaction,
+      order_number: form_payment[index].fopa_no_order_second,
+      totalAll: totalAll,
+      personal_name: form_payment[index].add_personal_name,
+      phone_number: form_payment[index].add_phone_number,
+      address: form_payment[index].add_address,
+      resi: form_payment[index].fopa_number_resi,
+      area:
+        'Kelurahan ' +
+        village.village +
+        ' ' +
+        'Kecamatan ' +
+        village.district +
+        ' ' +
+        village.city +
+        ' ' +
+        village.province +
+        ' ' +
+        village.postal,
+      products: data_products,
+    };
+    console.log(data);
+
+    let waybill = qs.stringify({
+      waybill: `${form_payment[index].fopa_number_resi}`,
+      courier: 'anteraja',
+    });
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `${process.env.API_TRACKING_PAKET}`,
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        key: `${process.env.KEY_ONGKIR}`,
+      },
+      data: waybill,
+    };
+
+    const response = await axios(config);
+    const result_waybill = response.data.rajaongkir.result;
+
+    if (result_waybill.delivery_status.status == 'DELIVERED') {
+      await redisClient.setex('listDone', 60, JSON.stringify(data));
+
+      const cachedData = await redisClient.get('listDone');
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        return res.status(200).json({
+          message: 'List Done (Cached)',
+          data: parsedData,
+        });
+      }
+
+      return res.status(200).json({
+        message: 'List Done',
+        data: data,
+      });
+    } else {
+      return res.status(200).json({
+        message: 'List Done',
+        data: [],
+      });
+    }
+  }
 };
 export default {
   allCart,
@@ -1625,4 +1800,5 @@ export default {
   listCancel,
   sendCancel,
   listDelivery,
+  listDone,
 };
