@@ -39,4 +39,11 @@ router.post(
   authJWT.ensureAdmin,
   IndexController.OrderController.Pickup,
 );
+
+router.get(
+  '/admin/listDone',
+  authJWT.ensureAdmin,
+  IndexController.OrderController.listDone,
+);
+
 export default router;
