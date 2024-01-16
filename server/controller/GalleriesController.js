@@ -1,4 +1,17 @@
 const sequelize = require('../helpers/queryConn.js');
+const Redis = require('ioredis');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
+
+redisClient.on('error', (err) => {
+  console.error('Error connecting to Redis:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Connected to Redis');
+});
 
 const allGalleries = async (req, res) => {
   try {
@@ -30,6 +43,22 @@ const allGalleries = async (req, res) => {
         page: page - 1,
         limit: limit,
       };
+    }
+
+    await redisClient.setex(
+      'showAllGalleries',
+      60,
+      JSON.stringify(result, pagination),
+    );
+
+    const cachedData = await redisClient.get('showAllGalleries');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show All Galleries',
+        data: parsedData,
+        pagination: pagination,
+      });
     }
 
     return res.status(200).json({
@@ -129,6 +158,17 @@ const detailGalleries = async (req, res) => {
     const result = await req.context.models.galleries.findAll({
       where: { gall_id: req.params.id },
     });
+
+    await redisClient.setex('detailCategories', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('detailCategories');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show All Categories',
+        data: parsedData,
+      });
+    }
 
     return res.status(200).json({
       message: 'Detail Galleries',

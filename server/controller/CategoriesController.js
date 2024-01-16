@@ -1,4 +1,17 @@
 const sequelize = require('../helpers/queryConn.js');
+const Redis = require('ioredis');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
+
+redisClient.on('error', (err) => {
+  console.error('Error connecting to Redis:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Connected to Redis');
+});
 
 const createCategories = async (req, res) => {
   const { files, fields } = req.fileAttrb;
@@ -52,6 +65,22 @@ const allCategories = async (req, res) => {
       };
     }
 
+    await redisClient.setex(
+      'showAllCategories',
+      60,
+      JSON.stringify(result, pagination),
+    );
+
+    const cachedData = await redisClient.get('showAllCategories');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show All Categories',
+        data: parsedData,
+        pagination: pagination,
+      });
+    }
+
     return res.status(200).json({
       message: 'Show All Categories',
       data: result,
@@ -91,7 +120,7 @@ const allCategoriesSearch = async (req, res) => {
         type: sequelize.QueryTypes.SELECT,
       },
     );
-    // console.log(countResult);
+
     const countFiltered = countResult.length;
 
     let pagination = {};
@@ -110,8 +139,9 @@ const allCategoriesSearch = async (req, res) => {
         limit: limit,
       };
     }
+
     return res.status(200).json({
-      message: 'Show All Categories',
+      message: 'Search All Categories',
       data: result,
       pagination: pagination,
     });
@@ -129,6 +159,16 @@ const detailCategories = async (req, res) => {
       attributes: ['cate_id', 'cate_name', 'cate_image'],
     });
 
+    await redisClient.setex('detailCategories', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('detailCategories');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Detail Categories',
+        data: parsedData,
+      });
+    }
     return res.status(200).json({
       message: 'Detail Categories',
       data: result,
@@ -201,6 +241,17 @@ const detailProduct = async (req, res) => {
         },
       ],
     });
+
+    await redisClient.setex('detailProduct', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('detailProduct');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Detail Product',
+        data: parsedData,
+      });
+    }
 
     return res.status(200).json({
       message: 'Detail Product',

@@ -1,4 +1,17 @@
 const geografis = require('geografis');
+const Redis = require('ioredis');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
+
+redisClient.on('error', (err) => {
+  console.error('Error connecting to Redis:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Connected to Redis');
+});
 
 const showProvince = async (req, res) => {
   try {
@@ -11,6 +24,17 @@ const showProvince = async (req, res) => {
         name: provinces[index].province,
       };
       result.push(data);
+    }
+
+    await redisClient.setex('showProvince', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('showProvince');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show Province',
+        data: parsedData,
+      });
     }
 
     return res.status(200).json({
@@ -38,6 +62,17 @@ const showCity = async (req, res) => {
       result.push(data);
     }
 
+    await redisClient.setex('showCity', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('showCity');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show City',
+        data: parsedData,
+      });
+    }
+
     return res.status(200).json({
       message: 'Show City',
       data: result,
@@ -63,6 +98,17 @@ const showDistrict = async (req, res) => {
       result.push(data);
     }
 
+    await redisClient.setex('showDistrict', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('showDistrict');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show Kecamatan',
+        data: parsedData,
+      });
+    }
+
     return res.status(200).json({
       message: 'Show Kecamatan',
       data: result,
@@ -78,7 +124,7 @@ const showVillage = async (req, res) => {
   try {
     const district = geografis.getDistrict(req.params.id);
     const village = district.villages;
-    console.log(village);
+
     const result = [];
     for (let index = 0; index < village.length; index++) {
       const data = {
@@ -86,6 +132,17 @@ const showVillage = async (req, res) => {
         name: village[index].village,
       };
       result.push(data);
+    }
+
+    await redisClient.setex('showVillage', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('showVillage');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show Kelurahan',
+        data: parsedData,
+      });
     }
 
     return res.status(200).json({
@@ -103,6 +160,17 @@ const showArea = async (req, res) => {
   try {
     const village = geografis.getVillage(req.params.id);
     const result = [village];
+
+    await redisClient.setex('showArea', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('showArea');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show Area',
+        data: parsedData,
+      });
+    }
 
     return res.status(200).json({
       message: 'Show Area',
@@ -129,6 +197,7 @@ const createAddress = async (req, res) => {
       add_mark,
       add_mark_default,
     } = req.body;
+
     const result = await req.context.models.address.create({
       add_personal_name: add_personal_name,
       add_phone_number: add_phone_number,
@@ -188,6 +257,22 @@ const showAddress = async (req, res) => {
       };
     }
 
+    await redisClient.setex(
+      'showAddress',
+      60,
+      JSON.stringify(result, pagination),
+    );
+
+    const cachedData = await redisClient.get('showAddress');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show Address',
+        data: parsedData,
+        pagination: pagination,
+      });
+    }
+
     return res.status(200).json({
       message: 'Show all address',
       data: result,
@@ -205,6 +290,17 @@ const detailAddress = async (req, res) => {
     const result = await req.context.models.address.findAll({
       where: { add_id: req.params.id },
     });
+
+    await redisClient.setex('detailAddress', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('detailAddress');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show Address',
+        data: parsedData,
+      });
+    }
 
     return res.status(200).json({
       message: 'Detail Address',

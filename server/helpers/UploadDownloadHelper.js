@@ -1,6 +1,19 @@
-import formidable from "formidable";
-require("dotenv").config();
-const Minio = require("minio");
+import formidable from 'formidable';
+require('dotenv').config();
+const Minio = require('minio');
+const Redis = require('ioredis');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
+
+redisClient.on('error', (err) => {
+  console.error('Error connecting to Redis:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Connected to Redis');
+});
 
 const uploadSingleFiles = async (req, res, next) => {
   const minioClient = new Minio.Client({
@@ -17,25 +30,25 @@ const uploadSingleFiles = async (req, res, next) => {
 
   form
     .parse(req)
-    .on("field", (fieldName, value) => {
+    .on('field', (fieldName, value) => {
       fields.push({ fieldName, value });
     })
-    .once("file", (filename, file) => {
+    .once('file', (filename, file) => {
       files.push({ filename, file });
 
       const objectName = file.originalFilename;
       const fileStream = file.filepath;
-      const bucketName = "sock-energy";
+      const bucketName = 'sock-energy';
       const metaData = {};
-      
+
       // Determine the Content-Type based on file extension
-      const extension = objectName.split(".").pop().toLowerCase();
-      if (extension === "png") {
-        metaData["Content-Type"] = "image/png";
-      } else if (extension === "jpg" || extension === "jpeg") {
-        metaData["Content-Type"] = "image/jpeg";
-      } else if (extension === "svg") {
-        metaData["Content-Type"] = "image/svg+xml";
+      const extension = objectName.split('.').pop().toLowerCase();
+      if (extension === 'png') {
+        metaData['Content-Type'] = 'image/png';
+      } else if (extension === 'jpg' || extension === 'jpeg') {
+        metaData['Content-Type'] = 'image/jpeg';
+      } else if (extension === 'svg') {
+        metaData['Content-Type'] = 'image/svg+xml';
       }
 
       minioClient.fPutObject(
@@ -45,7 +58,7 @@ const uploadSingleFiles = async (req, res, next) => {
         metaData,
         function (err, etag) {
           if (err) {
-            form._error(new Error("Failed to upload file to MinIO"));
+            form._error(new Error('Failed to upload file to MinIO'));
           } else {
             req.fileAttrb = {
               files: files,
@@ -68,14 +81,17 @@ const showProductImage = async (req, res) => {
   });
 
   const filename = req.params.filename;
-  const bucketName = "sock-energy";
+  const bucketName = 'sock-energy';
   const objectName = `${filename}`;
 
-  // Create a presigned URL for the image
   const url = await minioClient.presignedGetObject(bucketName, objectName);
-  // console.log(url);
-  // Redirect the user to the presigned URL
-  res.redirect(url);
+
+  await redisClient.setex('showProductImage', 60, JSON.stringify(url));
+
+  const cachedData = await redisClient.get('showProductImage');
+  if (cachedData) {
+    res.redirect(url);
+  }
 };
 
 export default {
