@@ -8,6 +8,7 @@ import OngkirController from './OngkirController';
 import GalleriesController from './GalleriesController';
 import AddressController from './AddressController';
 import OrderController from './OrderController';
+import AboutController from './AboutController';
 
 export default {
   UserController,
@@ -20,4 +21,5 @@ export default {
   GalleriesController,
   AddressController,
   OrderController,
+  AboutController,
 };

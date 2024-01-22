@@ -75,6 +75,7 @@ function createServer() {
   app.use(config.URL_API + '/galleries', routes.GalleriesRoute);
   app.use(config.URL_API + '/address', routes.AddressRoute);
   app.use(config.URL_API + '/orders', routes.OrderRoute);
+  app.use(config.URL_API + '/about', routes.AboutRoute);
 
   // use middleware to handle errors from other modules
   app.use(middleware.handleError);

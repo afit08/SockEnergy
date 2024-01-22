@@ -8,6 +8,7 @@ import OngkirRoute from './OngkirRoute';
 import GalleriesRoute from './GalleriesRoute';
 import AddressRoute from './AddressRoute';
 import OrderRoute from './OrderRoute';
+import AboutRoute from './AboutRoute';
 
 export default {
   UserRoute,
@@ -20,4 +21,5 @@ export default {
   GalleriesRoute,
   AddressRoute,
   OrderRoute,
+  AboutRoute,
 };

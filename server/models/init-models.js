@@ -2,6 +2,7 @@
 import _sequelize from 'sequelize';
 const DataTypes = _sequelize.DataTypes;
 require('dotenv').config();
+import _about from './about.js';
 import _address from './address.js';
 import _carts from './carts.js';
 import _categories from './categories.js';
@@ -14,6 +15,7 @@ import _galleries from './galleries.js';
 import _gender from './gender.js';
 import _payment_method from './payment_method.js';
 import _products from './products.js';
+import _rating from './rating.js';
 import _roles from './roles.js';
 import _tracking_shipper from './tracking_shipper.js';
 import _users from './users.js';
@@ -21,6 +23,7 @@ import _users from './users.js';
 const sequelize = require('../helpers/queryConn.js');
 
 const initModels = (sequelize) => {
+  const about = _about.init(sequelize, DataTypes);
   const address = _address.init(sequelize, DataTypes);
   const carts = _carts.init(sequelize, DataTypes);
   const categories = _categories.init(sequelize, DataTypes);
@@ -33,6 +36,7 @@ const initModels = (sequelize) => {
   const gender = _gender.init(sequelize, DataTypes);
   const payment_method = _payment_method.init(sequelize, DataTypes);
   const products = _products.init(sequelize, DataTypes);
+  const rating = _rating.init(sequelize, DataTypes);
   const roles = _roles.init(sequelize, DataTypes);
   const tracking_shipper = _tracking_shipper.init(sequelize, DataTypes);
   const users = _users.init(sequelize, DataTypes);
@@ -42,11 +46,6 @@ const initModels = (sequelize) => {
     foreignKey: 'prod_cate_id',
   });
   categories.hasMany(products, { as: 'products', foreignKey: 'prod_cate_id' });
-  carts.belongsTo(form_payment, {
-    as: 'cart_fopa',
-    foreignKey: 'cart_fopa_id',
-  });
-  form_payment.hasMany(carts, { as: 'carts', foreignKey: 'cart_fopa_id' });
   tracking_shipper.belongsTo(form_payment, {
     as: 'ts_fopa',
     foreignKey: 'ts_fopa_id',
@@ -59,6 +58,8 @@ const initModels = (sequelize) => {
   gender.hasMany(users, { as: 'users', foreignKey: 'user_gender_id' });
   carts.belongsTo(products, { as: 'cart_prod', foreignKey: 'cart_prod_id' });
   products.hasMany(carts, { as: 'carts', foreignKey: 'cart_prod_id' });
+  rating.belongsTo(products, { as: 'rat_prod', foreignKey: 'rat_prod_id' });
+  products.hasMany(rating, { as: 'ratings', foreignKey: 'rat_prod_id' });
   users.belongsTo(roles, { as: 'user_role', foreignKey: 'user_role_id' });
   roles.hasMany(users, { as: 'users', foreignKey: 'user_role_id' });
   address.belongsTo(users, { as: 'add_user', foreignKey: 'add_user_id' });
@@ -73,8 +74,11 @@ const initModels = (sequelize) => {
     as: 'form_payments',
     foreignKey: 'fopa_user_id',
   });
+  rating.belongsTo(users, { as: 'rat_user', foreignKey: 'rat_user_id' });
+  users.hasMany(rating, { as: 'ratings', foreignKey: 'rat_user_id' });
 
   return {
+    about,
     address,
     carts,
     categories,
@@ -87,6 +91,7 @@ const initModels = (sequelize) => {
     gender,
     payment_method,
     products,
+    rating,
     roles,
     tracking_shipper,
     users,
