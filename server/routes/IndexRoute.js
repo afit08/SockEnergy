@@ -9,6 +9,7 @@ import GalleriesRoute from './GalleriesRoute';
 import AddressRoute from './AddressRoute';
 import OrderRoute from './OrderRoute';
 import AboutRoute from './AboutRoute';
+import RatingRoute from './RatingRoute';
 
 export default {
   UserRoute,
@@ -22,4 +23,5 @@ export default {
   AddressRoute,
   OrderRoute,
   AboutRoute,
+  RatingRoute,
 };

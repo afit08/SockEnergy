@@ -1678,6 +1678,7 @@ const listDone = async (req, res) => {
           SELECT
             a.cart_id,
             a.cart_qty,
+            b.prod_id,
             b.prod_name,
             b.prod_image,
             b.prod_price
@@ -1694,6 +1695,7 @@ const listDone = async (req, res) => {
       const data_products = data_product.map((item) => ({
         fopa_id: payment.id,
         id: item.cart_id,
+        prod_id: item.prod_id,
         qty: item.cart_qty,
         name: item.prod_name,
         image: item.prod_image,

@@ -9,6 +9,7 @@ import GalleriesController from './GalleriesController';
 import AddressController from './AddressController';
 import OrderController from './OrderController';
 import AboutController from './AboutController';
+import RatingController from './RatingController';
 
 export default {
   UserController,
@@ -22,4 +23,5 @@ export default {
   AddressController,
   OrderController,
   AboutController,
+  RatingController,
 };

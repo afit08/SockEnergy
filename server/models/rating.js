@@ -45,6 +45,10 @@ export default class rating extends Model {
           allowNull: true,
           defaultValue: Sequelize.Sequelize.fn('now'),
         },
+        rat_fopa_id: {
+          type: DataTypes.STRING(50),
+          allowNull: true,
+        },
       },
       {
         sequelize,
