@@ -1397,67 +1397,134 @@ const detailPayment = async (req, res) => {
 };
 
 const listCancel = async (req, res) => {
-  try {
-    const result = await sequelize.query(
+  const form_payment = await sequelize.query(
+    `
+      select
+      distinct
+      a.fopa_id as id,
+      a.fopa_ongkir as ongkir,
+      a.fopa_payment as payment,
+      a.fopa_rek as no_rek,
+      a.fopa_end_date as end_date,
+      a.fopa_status,
+      a.fopa_start_date,
+      a.fopa_end_date,
+      a.fopa_image_transaction,
+      a.fopa_no_order_first,
+      a.fopa_no_order_second,
+      a.fopa_image_transaction,
+      a.fopa_created_at,
+      b.add_personal_name,
+      b.add_phone_number,
+      b.add_address,
+      b.add_village,
+      b.add_mark
+      from form_payment a
+      inner join address b on b.add_user_id = a.fopa_user_id
+      inner join carts c on c.cart_fopa_id = a.fopa_id
+      where fopa_user_id = '${req.user.user_id}'
+      and fopa_status = 'cancel'
+      and cart_status = 'payment'
+      order by fopa_created_at DESC
+    `,
+    {
+      type: sequelize.QueryTypes.SELECT,
+    },
+  );
+
+  const result = [];
+  for (let index = 0; index < form_payment.length; index++) {
+    const village = geografis.getVillage(form_payment[index].add_village);
+    // const timeZone = 'Asia/Jakarta';
+    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+    const endDate = moment
+      .utc(form_payment[index].end_date)
+      .format('DD-MM-YYYY HH:mm:ss');
+
+    const data_product = await sequelize.query(
       `
-        select 
-        c.prod_id,
-        c.prod_name as name,
-        c.prod_price as price,
-        c.prod_image as image,
-        a.fopa_no_order_first as first_num,
-        a.fopa_no_order_second as second_num,
-        a.fopa_created_at,
-        b.cart_id,
-        b.cart_qty as qty,
-        (b.cart_qty::integer * c.prod_price) as total 
-        from form_payment a
-        left join carts b on b.cart_fopa_id = a.fopa_id 
-        left join products c on c.prod_id = b.cart_prod_id
-        where fopa_status = 'cancel'
-        and cart_status = 'payment'
-        and fopa_user_id = '${req.user.user_id}'
-        order by fopa_created_at DESC
-      `,
+          select 
+          a.cart_id,
+          a.cart_qty,
+          b.prod_name,
+          b.prod_image,
+          b.prod_price
+          from carts a
+          inner join products b on b.prod_id = a.cart_prod_id
+          where cart_fopa_id = :id
+        `,
       {
+        replacements: { id: form_payment[index].id },
         type: sequelize.QueryTypes.SELECT,
       },
     );
 
-    const results = [];
-    for (let index = 0; index < result.length; index++) {
+    const data_products = [];
+    for (let a = 0; a < data_product.length; a++) {
       const data = {
-        id_prod: result[index].prod_id,
-        name: result[index].name,
-        image: result[index].image,
-        order_number: result[index].second_num + result[index].first_num,
-        id_cart: result[index].cart_id,
-        qty: result[index].qty,
-        total: result[index].total,
+        fopa_id: form_payment[index].id,
+        id: data_product[a].cart_id,
+        qty: data_product[a].cart_qty,
+        name: data_product[a].prod_name,
+        image: data_product[a].prod_image,
+        price: data_product[a].prod_price,
+        total: data_product[a].cart_qty * data_product[a].prod_price,
       };
-      results.push(data);
+
+      data_products.push(data);
     }
+    const totalAll = data_products.reduce(
+      (acc, current) => acc + current.total,
+      0,
+    );
 
-    await redisClient.setex('listCancel', 60, JSON.stringify(results));
+    const data = {
+      fopa_id: form_payment[index].id,
+      status: form_payment[index].fopa_status,
+      ongkir: form_payment[index].ongkir,
+      payment: form_payment[index].payment,
+      no_rek: form_payment[index].no_rek,
+      start_date: form_payment[index].fopa_start_date,
+      end_date: form_payment[index].fopa_end_date,
+      image_transaction: form_payment[index].fopa_image_transaction,
+      order_number: form_payment[index].fopa_no_order_second,
+      totalAll: totalAll,
+      personal_name: form_payment[index].add_personal_name,
+      phone_number: form_payment[index].add_phone_number,
+      address: form_payment[index].add_address,
+      area:
+        'Kelurahan ' +
+        village.village +
+        ' ' +
+        'Kecamatan ' +
+        village.district +
+        ' ' +
+        village.city +
+        ' ' +
+        village.province +
+        ' ' +
+        village.postal,
+      products: data_products,
+    };
 
-    const cachedData = await redisClient.get('listCancel');
-    if (cachedData) {
-      const parsedData = JSON.parse(cachedData);
-      return res.status(200).json({
-        message: 'List Cancel (Cached)',
-        data: parsedData,
-      });
-    }
+    result.push(data);
+  }
 
+  await redisClient.setex('listCancel', 60, JSON.stringify(result));
+
+  const cachedData = await redisClient.get('listCancel');
+  if (cachedData) {
+    const parsedData = JSON.parse(cachedData);
     return res.status(200).json({
-      message: 'List Cancel',
-      data: results,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: error.message,
+      message: 'List Cancel (Cached)',
+      data: parsedData,
     });
   }
+
+  return res.status(200).json({
+    message: 'List Cancel',
+    data: result,
+  });
 };
 
 const sendCancel = async (req, res) => {
@@ -1726,6 +1793,8 @@ const listDone = async (req, res) => {
         products: data_products,
       };
 
+      console.log(payment.fopa_number_resi);
+
       let waybill = qs.stringify({
         waybill: `${payment.fopa_number_resi}`,
         courier: 'anteraja',
@@ -1744,7 +1813,7 @@ const listDone = async (req, res) => {
 
       const response = await axios(config);
       const result_waybill = response.data.rajaongkir.result;
-
+      console.log(result_waybill.delivery_status.status);
       if (result_waybill.delivery_status.status == 'DELIVERED') {
         await redisClient.setex('listDelivery', 60, JSON.stringify(data));
 
@@ -1774,7 +1843,6 @@ const listDone = async (req, res) => {
       }
     }
   } catch (error) {
-    console.error('Error in listDelivery:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

@@ -374,6 +374,18 @@ const detailProducts = async (req, res) => {
           model: req.context.models.categories,
           as: 'prod_cate',
         },
+        {
+          model: req.context.models.rating,
+          as: 'ratings',
+          attributes: ['rat_id', 'rat_count', 'rat_desc', 'rat_image'],
+          include: [
+            {
+              model: req.context.models.users,
+              as: 'rat_user',
+              attributes: ['user_id', 'user_photo', 'user_personal_name'],
+            },
+          ],
+        },
       ],
     });
 
