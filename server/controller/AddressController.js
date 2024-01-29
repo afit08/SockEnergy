@@ -1,5 +1,6 @@
 const geografis = require('geografis');
 const Redis = require('ioredis');
+const sequelize = require('../helpers/queryConn.js');
 const redisClient = new Redis({
   host: process.env.IP_REDIS,
   port: process.env.PORT_REDIS,
@@ -230,12 +231,34 @@ const showAddress = async (req, res) => {
     let start = (page - 1) * limit;
     let end = page * limit;
 
-    const result = await req.context.models.address.findAll({
-      where: { add_user_id: req.user.user_id },
-      offset: start,
-      limit: limit,
-    });
-
+    const result = await sequelize.query(
+      `
+      select 
+      adds.add_id as id,
+      adds.add_personal_name as personal_name,
+      prov.nm as province,
+      city.nm as city,
+      district.nm as district,
+      village.nm as village,
+      adds.add_address as address,
+      adds.add_detail_address as detail_address,
+      adds.add_mark as mark,
+      adds.add_mark_default as default,
+      adds.add_user_id as user_id,
+      adds.add_created_at as created_at,
+      adds.add_updated_at as updated_at
+      from address as adds
+      inner join dt1 as prov on prov.id = adds.add_province
+      inner join dt2 as city on city.id = adds.add_city
+      inner join dt3 as district on district.id = adds.add_district
+      inner join dt4 as village on village.id = adds.add_village
+      where adds.add_user_id = :id 
+      `,
+      {
+        replacements: { limit, start, id: req.user.user_id },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
     const countResult = await req.context.models.address.findAndCountAll({});
 
     const countFiltered = countResult.count;

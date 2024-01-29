@@ -287,6 +287,111 @@ const editCategoriesNoImage = async (req, res) => {
   }
 };
 
+const allCategoriesCustomer = async (req, res) => {
+  try {
+    let limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
+    let page = parseInt(req.query.page) || 1; // Default page to 1 if not provided
+    let start = (page - 1) * limit;
+    let end = page * limit;
+
+    const result = await req.context.models.categories.findAll({
+      order: [['cate_created_at', 'DESC']],
+      include: [
+        {
+          model: req.context.models.products,
+          as: 'products',
+          attributes: ['prod_id', 'prod_name'],
+        },
+      ],
+      offset: start,
+      limit: limit,
+    });
+
+    const countResult = await req.context.models.categories.findAndCountAll({});
+    // console.log(countResult);
+    const countFiltered = countResult.count;
+
+    let pagination = {};
+    pagination.totalRow = parseInt(countFiltered);
+    pagination.totalPage = Math.ceil(countFiltered / limit);
+    if (end < countFiltered) {
+      pagination.next = {
+        page: page + 1,
+        limit: limit,
+      };
+    }
+
+    if (start > 0) {
+      pagination.prev = {
+        page: page - 1,
+        limit: limit,
+      };
+    }
+
+    await redisClient.setex(
+      'showAllCategoriesCustomer',
+      60,
+      JSON.stringify(result, pagination),
+    );
+
+    const cachedData = await redisClient.get('showAllCategoriesCustomer');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show All Categories Customer',
+        data: parsedData,
+        pagination: pagination,
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Show All Categories Customer',
+      data: result,
+      pagination: pagination,
+    });
+  } catch (error) {
+    return res.status(404).json({ message: error.message });
+  }
+};
+
+const detailCategoriesCustomer = async (req, res) => {
+  try {
+    const result = await req.context.models.categories.findOne({
+      where: { cate_id: req.params.id },
+      include: [
+        {
+          model: req.context.models.products,
+          as: 'products',
+        },
+      ],
+    });
+
+    await redisClient.setex(
+      'detailCategoriesCustomer',
+      60,
+      JSON.stringify(result),
+    );
+
+    const cachedData = await redisClient.get('detailCategoriesCustomer');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show All Categories Customer',
+        data: parsedData,
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Detail Categories Customer',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
 export default {
   createCategories,
   allCategories,
@@ -296,4 +401,7 @@ export default {
   detailCategories,
   allCategoriesSearch,
   detailProduct,
+  allCategoriesCustomer,
+  detailCategories,
+  detailCategoriesCustomer,
 };

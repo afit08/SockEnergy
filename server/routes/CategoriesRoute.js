@@ -53,4 +53,17 @@ router.get(
   IndexController.CategoriesController.detailProduct,
 );
 
+// CUSTOMER
+router.get(
+  '/customer/all',
+  authJWT.ensureCustomer,
+  IndexController.CategoriesController.allCategoriesCustomer,
+);
+
+router.get(
+  '/customer/:id',
+  authJWT.ensureCustomer,
+  IndexController.CategoriesController.detailCategoriesCustomer,
+);
+
 export default router;
