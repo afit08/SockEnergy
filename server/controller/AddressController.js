@@ -316,9 +316,13 @@ const detailAddress = async (req, res) => {
       select 
       adds.add_id as id,
       adds.add_personal_name as personal_name,
+      prov.id as id_province,
       prov.nm as province,
+      city.id as id_city,
       city.nm as city,
+      district.id as id_district,
       district.nm as district,
+      village.id as id_village,
       village.nm as village,
       adds.add_address as address,
       adds.add_detail_address as detail_address,
@@ -346,7 +350,7 @@ const detailAddress = async (req, res) => {
     if (cachedData) {
       const parsedData = JSON.parse(cachedData);
       return res.status(200).json({
-        message: 'Show Address',
+        message: 'Detail Address',
         data: parsedData,
       });
     }
