@@ -30,4 +30,28 @@ router.post(
 );
 router.post('/createGender', IndexController.UserController.createGender);
 
+// customer
+
+router.get(
+  '/customer/detailUser/:id',
+  authJWT.ensureCustomer,
+  IndexController.UserController.detailUsers,
+);
+router.post(
+  '/customer/updateNoImage/:id',
+  authJWT.ensureCustomer,
+  IndexController.UserController.updateUsersNoimage,
+);
+router.post(
+  '/customer/updateImage/:id',
+  authJWT.ensureCustomer,
+  UploadDownloadHelper.uploadSingleFiles,
+  IndexController.UserController.updateUsersImage,
+);
+router.post(
+  '/customer/changePassword/:id',
+  authJWT.ensureCustomer,
+  IndexController.UserController.changePassword,
+);
+
 export default router;

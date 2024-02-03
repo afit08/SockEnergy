@@ -245,6 +245,44 @@ const createGender = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  const { newPassword, confirmPassword, currentPassword } = req.body;
+
+  try {
+    const user = await req.context.models.users.findOne({
+      where: { user_id: req.params.id },
+    });
+
+    // Validate current password
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.user_password,
+    );
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: 'Invalid current password' });
+    }
+
+    // Confirm new password
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match' });
+    }
+
+    const hashPassword = await bcrypt.hash(newPassword, SALT_ROUND);
+
+    const result = await req.context.models.users.update(
+      { user_password: hashPassword },
+      { returning: true, where: { user_id: req.params.id } },
+    );
+
+    return res.status(200).json({
+      message: 'Change Password',
+      data: result[1][0],
+    });
+  } catch (error) {
+    return res.status(404).json({ message: error.message });
+  }
+};
+
 export default {
   signup,
   signin,
@@ -255,4 +293,5 @@ export default {
   updateUsersImage,
   updateUsersNoimage,
   createGender,
+  changePassword,
 };

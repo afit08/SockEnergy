@@ -56,7 +56,40 @@ const detailRating = async (req, res) => {
   }
 };
 
+const ListRating = async (req, res) => {
+  try {
+    const result = await sequelize.query(
+      `
+        select 
+        a.rat_id,
+        a.rat_desc,
+        a.rat_image,
+        b.user_id,
+        b.user_personal_name,
+        c.prod_id,
+        c.prod_name
+        from rating a
+        inner join users b on b.user_id =  a.rat_user_id
+        inner join products c on c.prod_id = a.rat_prod_id
+      `,
+      {
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    return res.status(200).json({
+      message: 'Detail Rating For Users',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
 export default {
   createRating,
   detailRating,
+  ListRating,
 };

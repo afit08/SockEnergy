@@ -16,4 +16,10 @@ router.post(
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.RatingController.createRating,
 );
+
+router.get(
+  '/listRating',
+  authJWT.ensureAdmin,
+  IndexController.RatingController.ListRating,
+);
 export default router;
