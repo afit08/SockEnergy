@@ -7,24 +7,22 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import middleware from './helpers/middleware';
 import morgan from 'morgan';
-
-// for access models to db
-import models, { sequelize } from './models/init-models';
-import routes from './routes/IndexRoute';
 import os from 'os';
 import cluster from 'cluster';
 import rateLimit from 'express-rate-limit';
+import models, { sequelize } from './models/init-models';
+import routes from './routes/IndexRoute';
+import sanitizer from 'perfect-express-sanitizer';
+import bodyParser from 'body-parser';
+import { xss } from 'express-xss-sanitizer';
 
-// Create a rate limiter with options
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many requests, please try again later.',
 });
 
-// declare port
 const port = process.env.PORT || 3000;
-
 const clusterWorkerSize = os.cpus().length;
 
 if (clusterWorkerSize > 1) {
@@ -45,35 +43,58 @@ if (clusterWorkerSize > 1) {
 
 function createServer() {
   const app = express();
+  app.use(bodyParser.json({ limit: '1kb' }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: '1kb' }));
+  app.use(xss());
+  const whiteList = ['/auth/signin'];
+  app.use(
+    sanitizer.clean({
+      xss: true,
+      noSql: true,
+      sql: true,
+      sqlLevel: 5,
+      noSqlLevel: 5,
+    }, whiteList)
+  );
   app.use(limiter);
-  // parse body params and attach them to req.body
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-  // use helmet spy bisa dikenali SEO
-  app.use(helmet());
+
+  // Set up Content Security Policy (CSP) to mitigate XSS attacks
   app.use(
     helmet.contentSecurityPolicy({
       directives: {
         defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       },
-    }),
+    })
   );
-  app.use(helmet.hsts({ maxAge: 2147483648 }));
-  // secure apps by setting various HTTP headers
+
+  app.use(
+    helmet.hsts({
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    })
+  );
+
+  app.use(
+    helmet.frameguard({
+      action: 'deny',
+    })
+  );
+
   app.use(compress());
-  // enable CORS - Cross Origin Resource Sharing
   app.use(cors());
 
-  // load models dan simpan di req.context
-  app.use(async (req, res, next) => {
+  app.use((req, res, next) => {
     req.context = { models };
     next();
   });
 
   app.use(morgan('dev'));
 
-  // call routes
   app.use(config.URL_API + '/auth', routes.UserRoute);
   app.use(config.URL_API + '/roles', routes.RolesRoute);
   app.use(config.URL_API + '/categories', routes.CategoriesRoute);
@@ -87,11 +108,9 @@ function createServer() {
   app.use(config.URL_API + '/about', routes.AboutRoute);
   app.use(config.URL_API + '/rating', routes.RatingRoute);
 
-  // use middleware to handle errors from other modules
   app.use(middleware.handleError);
   app.use(middleware.notFound);
 
-  // set to false agar tidak di drop tables yang ada didatabase
   const dropDatabaseSync = false;
 
   sequelize.sync({ force: dropDatabaseSync }).then(async () => {
@@ -103,7 +122,7 @@ function createServer() {
       console.log(
         `Server is listening on port ${port} ${'with multiple workers'} ${
           process.pid
-        }`,
+        }`
       );
     });
   });

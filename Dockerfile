@@ -15,10 +15,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install application dependencies using Yarn
-RUN yarn install --frozen-lockfile
-
-# Copy other files (sock-backend.tar.gz) first to leverage Docker cache
-COPY sock-backend.tar.gz .
+RUN yarn install 
 
 # Copy the application code to the container
 COPY . .
