@@ -13,6 +13,14 @@ import models, { sequelize } from './models/init-models';
 import routes from './routes/IndexRoute';
 import os from 'os';
 import cluster from 'cluster';
+import rateLimit from 'express-rate-limit';
+
+// Create a rate limiter with options
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+});
 
 // declare port
 const port = process.env.PORT || 3000;
@@ -37,6 +45,7 @@ if (clusterWorkerSize > 1) {
 
 function createServer() {
   const app = express();
+  app.use(limiter);
   // parse body params and attach them to req.body
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -90,7 +99,7 @@ function createServer() {
       console.log('Database do not drop');
     }
 
-    app.listen(port, () => {
+    app.listen(port, process.env.NODE_ENV, () => {
       console.log(
         `Server is listening on port ${port} ${'with multiple workers'} ${
           process.pid

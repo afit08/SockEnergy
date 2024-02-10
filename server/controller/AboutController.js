@@ -1,3 +1,10 @@
+const Redis = require('ioredis');
+const uuidv4 = require('uuid');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
+
 const createAbout = async (req, res) => {
   try {
     const { files, fields } = req.fileAttrb;
@@ -22,8 +29,10 @@ const createAbout = async (req, res) => {
 
 const allAbout = async (req, res) => {
   try {
+    // Use Sequelize's findAll method for fetching all records
     const result = await req.context.models.about.findAll({});
 
+    // Cache the result
     await redisClient.setex('allAbout', 60, JSON.stringify(result));
 
     const cachedData = await redisClient.get('allAbout');
@@ -40,18 +49,39 @@ const allAbout = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    return res.status(404).json({
-      message: error.message,
+    // Handle errors appropriately
+    return res.status(500).json({
+      message: 'Internal Server Error',
     });
   }
 };
 
+
 const oneAbout = async (req, res) => {
   try {
+    // Validate that req.params.id is a valid UUID v4
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
+    // Use Sequelize's findOne method with parameterized queries
     const result = await req.context.models.about.findOne({
-      where: { abt_id: req.params.id },
+      where: {
+        abt_id: req.params.id,
+      },
     });
 
+    if (!result) {
+      return res.status(404).json({
+        message: 'About record not found',
+      });
+    }
+
+    // Cache the result
     await redisClient.setex('oneAbout', 60, JSON.stringify(result));
 
     const cachedData = await redisClient.get('oneAbout');
@@ -68,8 +98,8 @@ const oneAbout = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    return res.status(404).json({
-      message: error.message,
+    return res.status(500).json({
+      message: 'Internal Server Error',
     });
   }
 };
