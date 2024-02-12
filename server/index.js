@@ -9,18 +9,11 @@ import middleware from './helpers/middleware';
 import morgan from 'morgan';
 import os from 'os';
 import cluster from 'cluster';
-import rateLimit from 'express-rate-limit';
 import models, { sequelize } from './models/init-models';
 import routes from './routes/IndexRoute';
 import sanitizer from 'perfect-express-sanitizer';
 import bodyParser from 'body-parser';
 import { xss } from 'express-xss-sanitizer';
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: 'Too many requests, please try again later.',
-});
 
 const port = process.env.PORT || 3000;
 const clusterWorkerSize = os.cpus().length;
@@ -46,17 +39,15 @@ function createServer() {
   app.use(bodyParser.json({ limit: '1kb' }));
   app.use(bodyParser.urlencoded({ extended: true, limit: '1kb' }));
   app.use(xss());
-  const whiteList = ['/auth/signin'];
+
   app.use(
     sanitizer.clean({
       xss: true,
       noSql: true,
-      sql: true,
-      sqlLevel: 5,
-      noSqlLevel: 5,
-    }, whiteList)
+      level: 5,
+      forbiddenTags: ['.execute'],
+    }),
   );
-  app.use(limiter);
   app.use(cookieParser());
 
   // Set up Content Security Policy (CSP) to mitigate XSS attacks
@@ -64,11 +55,15 @@ function createServer() {
     helmet.contentSecurityPolicy({
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          'https://cdnjs.cloudflare.com',
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       },
-    })
+    }),
   );
 
   app.use(
@@ -76,13 +71,13 @@ function createServer() {
       maxAge: 31536000,
       includeSubDomains: true,
       preload: true,
-    })
+    }),
   );
 
   app.use(
     helmet.frameguard({
       action: 'deny',
-    })
+    }),
   );
 
   app.use(compress());
@@ -122,7 +117,7 @@ function createServer() {
       console.log(
         `Server is listening on port ${port} ${'with multiple workers'} ${
           process.pid
-        }`
+        }`,
       );
     });
   });

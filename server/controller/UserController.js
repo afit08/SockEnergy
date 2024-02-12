@@ -3,6 +3,7 @@ const axios = require('axios');
 const SALT_ROUND = 10;
 const geografis = require('geografis');
 const moment = require('moment');
+import { encryptData, decryptData } from '../helpers/encryption';
 
 const signup = async (req, res) => {
   const { files, fields } = req.fileAttrb;
@@ -34,12 +35,17 @@ const signup = async (req, res) => {
 const signin = async (req, res) => {
   const { username, password } = req.body;
 
+  const encrypt_username = encryptData(username);
+  const encrypt_password = encryptData(password);
+  const decrypt_username = decryptData(encrypt_username);
+  const decrypt_password = decryptData(encrypt_password);
+
   try {
     const result = await req.context.models.users.findOne({
-      where: { user_name: username },
+      where: { user_name: decrypt_username },
     });
     const { user_id, user_name, user_email, user_password } = result.dataValues;
-    const compare = await bcrypt.compare(password, user_password);
+    const compare = await bcrypt.compare(decrypt_password, user_password);
     if (compare) {
       return res.send({ user_id, user_name, user_email });
     } else {

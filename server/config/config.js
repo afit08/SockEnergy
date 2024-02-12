@@ -9,6 +9,9 @@ const config = {
   URL_IMAGE: process.env.URL_IMAGE,
   URL_API: process.env.URL_API,
   UPLOAD_DIR: process.env.UPLOAD_DIR,
+  secret_key: process.env.SECRET_KEY,
+  secret_iv: process.env.SECRET_IV,
+  ecnryption_method: process.env.ECNRYPTION_METHOD,
 };
 
 export default config;

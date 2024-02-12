@@ -72,11 +72,10 @@ async function login(req, res, next) {
     roleType: req.user.userRoles,
     user_photo: req.user.user_photo,
   });
-  const { user_id, username, userRoles, user_photo } = req.user;
   res.cookie('jwt', token, { httpOnly: true });
 
   res.json({
-    profile: { user_id, username, userRoles, user_photo },
+    message: 'Login is Successfully!',
     success: true,
     token: token,
   });
