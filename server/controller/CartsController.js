@@ -18,6 +18,23 @@ redisClient.on('error', (err) => {
 redisClient.on('connect', () => {
   console.log('Connected to Redis');
 });
+const { body, validationResult } = require('express-validator');
+const uuidv4 = require('uuid');
+
+const createValidationRules = [
+  body('cart_qty').notEmpty().escape().withMessage('Cart QTY is required'),
+  body('cart_prod_id')
+    .notEmpty()
+    .escape()
+    .withMessage('Cart Product ID is required'),
+  body('fopa_ongkir').notEmpty().escape().withMessage('PayShipper is required'),
+  body('fopa_payment').notEmpty().escape().withMessage('Payment is required'),
+  body('fopa_desc_ongkir')
+    .notEmpty()
+    .escape()
+    .withMessage('Description PayShipper is required'),
+  body('fopa_etd_ongkir').notEmpty().escape().withMessage('ETD is required'),
+];
 
 const allCart = async (req, res) => {
   try {
@@ -53,23 +70,35 @@ const allCart = async (req, res) => {
       return res.status(200).json({
         message: 'All Carts (Cached)',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Show All Carts',
       data: results,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const addCart = async (req, res) => {
-  const { cart_qty, cart_prod_id } = req.body;
   try {
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const { cart_qty, cart_prod_id } = req.body;
+
     const result = await req.context.models.carts.create({
       cart_qty: cart_qty,
       cart_prod_id: cart_prod_id,
@@ -78,18 +107,34 @@ const addCart = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: 'Add Cart',
+      message: 'Add Cart Successfully!!!',
       data: result,
+      status: 200,
     });
   } catch (error) {
     return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const updateAddCart = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
     const { cart_qty } = req.body;
 
     const result = await req.context.models.carts.update(
@@ -102,37 +147,67 @@ const updateAddCart = async (req, res) => {
       },
     );
 
+    if (result[1][0] == undefined) {
+      return res.status(404).json({
+        message: 'Not found',
+        status: 404,
+      });
+    }
+
     return res.status(200).json({
-      message: 'Update Cart',
-      data: result[1][0],
+      message: 'Update Cart Successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const deleteCart = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const result = await req.context.models.carts.destroy({
       where: { cart_id: req.params.id },
     });
 
     return res.status(200).json({
       message: 'Delete Cart',
-      data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const postToPayment = async (req, res) => {
-  const transaction = await sequelize.transaction();
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const transaction = await sequelize.transaction();
     const { fopa_ongkir, fopa_payment, fopa_desc_ongkir, fopa_etd_ongkir } =
       req.body;
     const startDate = moment().format('DD-MM-YYYY hh:mm:ss');
@@ -180,19 +255,27 @@ const postToPayment = async (req, res) => {
     await transaction.commit();
 
     return res.status(200).json({
-      message: 'Creating Payment',
-      data: form_payment,
+      message: 'Creating Payment Successfully!!!',
+      status: 200,
     });
   } catch (error) {
     await transaction.rollback();
     return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const showPayment = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const form_payment = await req.context.models.form_payment.findOne({
       where: {
         fopa_user_id: req.params.id,
@@ -302,6 +385,7 @@ const showPayment = async (req, res) => {
       return res.status(200).json({
         message: 'No Data',
         data: [],
+        status: 200,
       });
     } else {
       const result = {
@@ -332,17 +416,26 @@ const showPayment = async (req, res) => {
       return res.status(200).json({
         message: 'Show form payment',
         data: result,
+        status: 200,
       });
     }
   } catch (error) {
     return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const checkout = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const address = await req.context.models.address.findOne({
       where: { add_mark_default: 'default', add_user_id: req.params.id },
     });
@@ -517,16 +610,19 @@ const checkout = async (req, res) => {
       return res.status(200).json({
         message: 'Show Form Checkout (Cached)',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Show Form Checkout',
       data: resultz,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -594,6 +690,7 @@ const listUnpayment = async (req, res) => {
       const data = {
         message: 'No Data',
         data: [],
+        status: 200,
       };
       result.push(data);
     } else {
@@ -705,18 +802,21 @@ const listUnpayment = async (req, res) => {
     return res.status(200).json({
       message: 'List Unpayment (Cached)',
       data: parsedData,
+      status: 200,
     });
   }
 
   return res.status(200).json({
     message: 'List Unpayment',
     data: result,
+    status: 200,
   });
 };
 
 const listPayment = async (req, res) => {
-  const form_payment = await sequelize.query(
-    `
+  try {
+    const form_payment = await sequelize.query(
+      `
       select
       distinct
       a.fopa_id as id,
@@ -745,22 +845,22 @@ const listPayment = async (req, res) => {
       and c.cart_status = 'done'
       order by fopa_created_at DESC
     `,
-    {
-      type: sequelize.QueryTypes.SELECT,
-    },
-  );
+      {
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
 
-  const result = [];
-  for (let index = 0; index < form_payment.length; index++) {
-    const village = geografis.getVillage(form_payment[index].add_village);
-    // const timeZone = 'Asia/Jakarta';
-    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
-    const endDate = moment
-      .utc(form_payment[index].end_date)
-      .format('DD-MM-YYYY HH:mm:ss');
+    const result = [];
+    for (let index = 0; index < form_payment.length; index++) {
+      const village = geografis.getVillage(form_payment[index].add_village);
+      // const timeZone = 'Asia/Jakarta';
+      const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+      const endDate = moment
+        .utc(form_payment[index].end_date)
+        .format('DD-MM-YYYY HH:mm:ss');
 
-    const data_product = await sequelize.query(
-      `
+      const data_product = await sequelize.query(
+        `
           select 
           a.cart_id,
           a.cart_qty,
@@ -771,87 +871,128 @@ const listPayment = async (req, res) => {
           inner join products b on b.prod_id = a.cart_prod_id
           where cart_fopa_id = :id
         `,
-      {
-        replacements: { id: form_payment[index].id },
-        type: sequelize.QueryTypes.SELECT,
-      },
-    );
+        {
+          replacements: { id: form_payment[index].id },
+          type: sequelize.QueryTypes.SELECT,
+        },
+      );
 
-    const data_products = [];
-    for (let a = 0; a < data_product.length; a++) {
+      const data_products = [];
+      for (let a = 0; a < data_product.length; a++) {
+        const data = {
+          fopa_id: form_payment[index].id,
+          id: data_product[a].cart_id,
+          qty: data_product[a].cart_qty,
+          name: data_product[a].prod_name,
+          image: data_product[a].prod_image,
+          price: data_product[a].prod_price,
+          total: data_product[a].cart_qty * data_product[a].prod_price,
+        };
+
+        data_products.push(data);
+      }
+      const totalAll = data_products.reduce(
+        (acc, current) => acc + current.total,
+        0,
+      );
+
       const data = {
         fopa_id: form_payment[index].id,
-        id: data_product[a].cart_id,
-        qty: data_product[a].cart_qty,
-        name: data_product[a].prod_name,
-        image: data_product[a].prod_image,
-        price: data_product[a].prod_price,
-        total: data_product[a].cart_qty * data_product[a].prod_price,
+        status: form_payment[index].fopa_status,
+        ongkir: form_payment[index].ongkir,
+        payment: form_payment[index].payment,
+        no_rek: form_payment[index].no_rek,
+        start_date: form_payment[index].fopa_start_date,
+        end_date: form_payment[index].fopa_end_date,
+        image_transaction: form_payment[index].fopa_image_transaction,
+        order_number: form_payment[index].fopa_no_order_second,
+        totalAll: totalAll,
+        personal_name: form_payment[index].add_personal_name,
+        phone_number: form_payment[index].add_phone_number,
+        address: form_payment[index].add_address,
+        area:
+          'Kelurahan ' +
+          village.village +
+          ' ' +
+          'Kecamatan ' +
+          village.district +
+          ' ' +
+          village.city +
+          ' ' +
+          village.province +
+          ' ' +
+          village.postal,
+        products: data_products,
       };
 
-      data_products.push(data);
+      result.push(data);
     }
-    const totalAll = data_products.reduce(
-      (acc, current) => acc + current.total,
-      0,
-    );
 
-    const data = {
-      fopa_id: form_payment[index].id,
-      status: form_payment[index].fopa_status,
-      ongkir: form_payment[index].ongkir,
-      payment: form_payment[index].payment,
-      no_rek: form_payment[index].no_rek,
-      start_date: form_payment[index].fopa_start_date,
-      end_date: form_payment[index].fopa_end_date,
-      image_transaction: form_payment[index].fopa_image_transaction,
-      order_number: form_payment[index].fopa_no_order_second,
-      totalAll: totalAll,
-      personal_name: form_payment[index].add_personal_name,
-      phone_number: form_payment[index].add_phone_number,
-      address: form_payment[index].add_address,
-      area:
-        'Kelurahan ' +
-        village.village +
-        ' ' +
-        'Kecamatan ' +
-        village.district +
-        ' ' +
-        village.city +
-        ' ' +
-        village.province +
-        ' ' +
-        village.postal,
-      products: data_products,
-    };
+    await redisClient.setex('listPayment', 60, JSON.stringify(result));
 
-    result.push(data);
-  }
+    const cachedData = await redisClient.get('listPayment');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'List Payment (Cached)',
+        data: parsedData,
+      });
+    }
 
-  await redisClient.setex('listPayment', 60, JSON.stringify(result));
-
-  const cachedData = await redisClient.get('listPayment');
-  if (cachedData) {
-    const parsedData = JSON.parse(cachedData);
     return res.status(200).json({
-      message: 'List Payment (Cached)',
-      data: parsedData,
+      message: 'List Payment',
+      data: result,
+      status: 200,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
     });
   }
-
-  return res.status(200).json({
-    message: 'List Payment',
-    data: result,
-  });
 };
 
 const uploadPayment = async (req, res) => {
-  const { files, fields } = req.fileAttrb;
-  const transaction = await sequelize.transaction();
   try {
+    const transaction = await sequelize.transaction();
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const fileBuffer = req.file.buffer;
+    const fileName = req.file.originalname;
+
+    await new Promise((resolve, reject) => {
+      minioClient.putObject(
+        'sock-energy',
+        fileName,
+        fileBuffer,
+        (err, etag) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(etag);
+          }
+        },
+      );
+    });
+
     const result = await req.context.models.form_payment.update(
       {
-        fopa_image_transaction: files[0].file.originalFilename,
+        fopa_image_transaction: fileName,
         fopa_status: 'payment',
       },
       {
@@ -886,14 +1027,22 @@ const uploadPayment = async (req, res) => {
 
     await transaction.commit();
 
+    if (result[1][0] == undefined) {
+      return res.status(404).json({
+        message: 'Not found',
+        status: 404,
+      });
+    }
+
     return res.status(200).json({
-      message: 'Upload Bukti Pembayaran',
-      data: result[1][0],
+      message: 'Upload Bukti Pembayaran Successfully!!!',
+      status: 200,
     });
   } catch (error) {
     await transaction.rollback();
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -939,16 +1088,26 @@ const allOrders = async (req, res) => {
     return res.status(200).json({
       message: 'All Orders',
       data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const detailAllOrdersAdmin = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const form_payment = await sequelize.query(
       `
       select
@@ -1009,10 +1168,12 @@ const detailAllOrdersAdmin = async (req, res) => {
     if (startDate >= endDate) {
       return res.status(200).json({
         message: 'No Data',
+        status: 200,
       });
     } else if (form_payment[0].fopa_status == 'payment') {
       return res.status(200).json({
         message: 'No Data',
+        status: 200,
       });
     } else {
       const result = { data_address, form_payment };
@@ -1024,22 +1185,33 @@ const detailAllOrdersAdmin = async (req, res) => {
         return res.status(200).json({
           message: 'Show Form Payment (Cached)',
           data: parsedData,
+          status: 200,
         });
       }
       return res.status(200).json({
         message: 'Show Form Payment',
         data: result,
+        status: 200,
       });
     }
   } catch (error) {
     return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const detailPaymentAdmin = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const form_payment = await sequelize.query(
       `
       select
@@ -1102,10 +1274,12 @@ const detailPaymentAdmin = async (req, res) => {
     if (startDate >= endDate) {
       return res.status(200).json({
         message: 'No Data',
+        status: 200,
       });
     } else if (form_payment[0].fopa_status == 'payment') {
       return res.status(200).json({
         message: 'No Data',
+        status: 200,
       });
     } else {
       const result = { data_address, form_payment };
@@ -1123,17 +1297,27 @@ const detailPaymentAdmin = async (req, res) => {
       return res.status(200).json({
         message: 'Show form payment',
         data: result,
+        status: 200,
       });
     }
   } catch (error) {
     return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const detailPayment = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const [data] = await sequelize.query(
       `
         select 
@@ -1265,12 +1449,14 @@ const detailPayment = async (req, res) => {
         return res.status(200).json({
           message: 'Detail Payment (Cached)',
           data: parsedData,
+          status: 200,
         });
       }
 
       return res.status(200).json({
         message: 'Detail Payment',
         data: result,
+        status: 200,
       });
     } else {
       let waybill = qs.stringify({
@@ -1381,24 +1567,28 @@ const detailPayment = async (req, res) => {
         return res.status(200).json({
           message: 'Detail Payment (Cached)',
           data: parsedData,
+          status: 200,
         });
       }
 
       return res.status(200).json({
         message: 'Detail Payment',
         data: result,
+        status: 200,
       });
     }
   } catch (error) {
     return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const listCancel = async (req, res) => {
-  const form_payment = await sequelize.query(
-    `
+  try {
+    const form_payment = await sequelize.query(
+      `
       select
       distinct
       a.fopa_id as id,
@@ -1427,22 +1617,22 @@ const listCancel = async (req, res) => {
       and cart_status = 'payment'
       order by fopa_created_at DESC
     `,
-    {
-      type: sequelize.QueryTypes.SELECT,
-    },
-  );
+      {
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
 
-  const result = [];
-  for (let index = 0; index < form_payment.length; index++) {
-    const village = geografis.getVillage(form_payment[index].add_village);
-    // const timeZone = 'Asia/Jakarta';
-    const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
-    const endDate = moment
-      .utc(form_payment[index].end_date)
-      .format('DD-MM-YYYY HH:mm:ss');
+    const result = [];
+    for (let index = 0; index < form_payment.length; index++) {
+      const village = geografis.getVillage(form_payment[index].add_village);
+      // const timeZone = 'Asia/Jakarta';
+      const startDate = moment.utc().format('DD-MM-YYYY HH:mm:ss');
+      const endDate = moment
+        .utc(form_payment[index].end_date)
+        .format('DD-MM-YYYY HH:mm:ss');
 
-    const data_product = await sequelize.query(
-      `
+      const data_product = await sequelize.query(
+        `
           select 
           a.cart_id,
           a.cart_qty,
@@ -1453,82 +1643,97 @@ const listCancel = async (req, res) => {
           inner join products b on b.prod_id = a.cart_prod_id
           where cart_fopa_id = :id
         `,
-      {
-        replacements: { id: form_payment[index].id },
-        type: sequelize.QueryTypes.SELECT,
-      },
-    );
+        {
+          replacements: { id: form_payment[index].id },
+          type: sequelize.QueryTypes.SELECT,
+        },
+      );
 
-    const data_products = [];
-    for (let a = 0; a < data_product.length; a++) {
+      const data_products = [];
+      for (let a = 0; a < data_product.length; a++) {
+        const data = {
+          fopa_id: form_payment[index].id,
+          id: data_product[a].cart_id,
+          qty: data_product[a].cart_qty,
+          name: data_product[a].prod_name,
+          image: data_product[a].prod_image,
+          price: data_product[a].prod_price,
+          total: data_product[a].cart_qty * data_product[a].prod_price,
+        };
+
+        data_products.push(data);
+      }
+      const totalAll = data_products.reduce(
+        (acc, current) => acc + current.total,
+        0,
+      );
+
       const data = {
         fopa_id: form_payment[index].id,
-        id: data_product[a].cart_id,
-        qty: data_product[a].cart_qty,
-        name: data_product[a].prod_name,
-        image: data_product[a].prod_image,
-        price: data_product[a].prod_price,
-        total: data_product[a].cart_qty * data_product[a].prod_price,
+        status: form_payment[index].fopa_status,
+        ongkir: form_payment[index].ongkir,
+        payment: form_payment[index].payment,
+        no_rek: form_payment[index].no_rek,
+        start_date: form_payment[index].fopa_start_date,
+        end_date: form_payment[index].fopa_end_date,
+        image_transaction: form_payment[index].fopa_image_transaction,
+        order_number: form_payment[index].fopa_no_order_second,
+        totalAll: totalAll,
+        personal_name: form_payment[index].add_personal_name,
+        phone_number: form_payment[index].add_phone_number,
+        address: form_payment[index].add_address,
+        area:
+          'Kelurahan ' +
+          village.village +
+          ' ' +
+          'Kecamatan ' +
+          village.district +
+          ' ' +
+          village.city +
+          ' ' +
+          village.province +
+          ' ' +
+          village.postal,
+        products: data_products,
       };
 
-      data_products.push(data);
+      result.push(data);
     }
-    const totalAll = data_products.reduce(
-      (acc, current) => acc + current.total,
-      0,
-    );
 
-    const data = {
-      fopa_id: form_payment[index].id,
-      status: form_payment[index].fopa_status,
-      ongkir: form_payment[index].ongkir,
-      payment: form_payment[index].payment,
-      no_rek: form_payment[index].no_rek,
-      start_date: form_payment[index].fopa_start_date,
-      end_date: form_payment[index].fopa_end_date,
-      image_transaction: form_payment[index].fopa_image_transaction,
-      order_number: form_payment[index].fopa_no_order_second,
-      totalAll: totalAll,
-      personal_name: form_payment[index].add_personal_name,
-      phone_number: form_payment[index].add_phone_number,
-      address: form_payment[index].add_address,
-      area:
-        'Kelurahan ' +
-        village.village +
-        ' ' +
-        'Kecamatan ' +
-        village.district +
-        ' ' +
-        village.city +
-        ' ' +
-        village.province +
-        ' ' +
-        village.postal,
-      products: data_products,
-    };
+    await redisClient.setex('listCancel', 60, JSON.stringify(result));
 
-    result.push(data);
-  }
+    const cachedData = await redisClient.get('listCancel');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'List Cancel (Cached)',
+        data: parsedData,
+      });
+    }
 
-  await redisClient.setex('listCancel', 60, JSON.stringify(result));
-
-  const cachedData = await redisClient.get('listCancel');
-  if (cachedData) {
-    const parsedData = JSON.parse(cachedData);
     return res.status(200).json({
-      message: 'List Cancel (Cached)',
-      data: parsedData,
+      message: 'List Cancel',
+      data: result,
+      status: 200,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
     });
   }
-
-  return res.status(200).json({
-    message: 'List Cancel',
-    data: result,
-  });
 };
 
 const sendCancel = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const result = await req.context.models.form_payment.update(
       {
         fopa_status: 'cancel',
@@ -1542,10 +1747,12 @@ const sendCancel = async (req, res) => {
     return res.status(200).json({
       message: 'Send Cancel',
       data: result,
+      status: 200,
     });
   } catch (error) {
     return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -1683,17 +1890,21 @@ const listDelivery = async (req, res) => {
         return res.status(200).json({
           message: 'List Delivery',
           data: [],
+          status: 200,
         });
       } else {
         return res.status(200).json({
           message: 'List Delivery',
           data: resultList,
+          status: 200,
         });
       }
     }
   } catch (error) {
-    console.error('Error in listDelivery:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
   }
 };
 
@@ -1834,16 +2045,21 @@ const listDone = async (req, res) => {
         return res.status(200).json({
           message: 'List Delivery',
           data: [],
+          status: 200,
         });
       } else {
         return res.status(200).json({
           message: 'List Delivery',
           data: resultList,
+          status: 200,
         });
       }
     }
   } catch (error) {
-    return res.status(500).json({ message: 'Internal Server Error' });
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
   }
 };
 

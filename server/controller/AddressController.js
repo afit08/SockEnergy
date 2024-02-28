@@ -14,6 +14,34 @@ redisClient.on('connect', () => {
   console.log('Connected to Redis');
 });
 
+const { body, validationResult } = require('express-validator');
+const uuidv4 = require('uuid');
+
+const createValidationRules = [
+  body('add_personal_name')
+    .notEmpty()
+    .escape()
+    .withMessage('Personal name is required'),
+  body('add_phone_number')
+    .notEmpty()
+    .escape()
+    .withMessage('Phone number is required'),
+  body('add_province').notEmpty().escape().withMessage('Province is required'),
+  body('add_city').notEmpty().escape().withMessage('City is required'),
+  body('add_district').notEmpty().escape().withMessage('District is required'),
+  body('add_village').notEmpty().escape().withMessage('Village is required'),
+  body('add_address').notEmpty().escape().withMessage('Address is required'),
+  body('add_detail_address')
+    .notEmpty()
+    .escape()
+    .withMessage('Detail Address is required'),
+  body('add_mark').notEmpty().escape().withMessage('Mark is required'),
+  body('add_mark_default')
+    .notEmpty()
+    .escape()
+    .withMessage('Mark Default is required'),
+];
+
 const showProvince = async (req, res) => {
   try {
     const provinces = geografis.getProvinces();
@@ -35,16 +63,19 @@ const showProvince = async (req, res) => {
       return res.status(200).json({
         message: 'Show Province',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Show Province',
       data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -71,16 +102,19 @@ const showCity = async (req, res) => {
       return res.status(200).json({
         message: 'Show City',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Show City',
       data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -107,16 +141,19 @@ const showDistrict = async (req, res) => {
       return res.status(200).json({
         message: 'Show Kecamatan',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Show Kecamatan',
       data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(200).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -143,16 +180,19 @@ const showVillage = async (req, res) => {
       return res.status(200).json({
         message: 'Show Kelurahan',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Show Kelurahan',
       data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -170,22 +210,34 @@ const showArea = async (req, res) => {
       return res.status(200).json({
         message: 'Show Area',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Show Area',
       data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const createAddress = async (req, res) => {
   try {
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const {
       add_personal_name,
       add_phone_number,
@@ -214,12 +266,13 @@ const createAddress = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: 'Create Address',
-      data: result,
+      message: 'Create address successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -293,6 +346,7 @@ const showAddress = async (req, res) => {
       return res.status(200).json({
         message: 'Show Address',
         data: parsedData,
+        status: 200,
         pagination: pagination,
       });
     }
@@ -300,11 +354,13 @@ const showAddress = async (req, res) => {
     return res.status(200).json({
       message: 'Show all address',
       data: result,
+      status: 200,
       pagination: pagination,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -352,22 +408,41 @@ const detailAddress = async (req, res) => {
       return res.status(200).json({
         message: 'Detail Address',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Detail Address',
       data: result,
+      status: 200,
     });
   } catch (error) {
     return res.status(404).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const updateAddress = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
     const {
       add_personal_name,
       add_phone_number,
@@ -397,30 +472,54 @@ const updateAddress = async (req, res) => {
       { returning: true, where: { add_id: req.params.id } },
     );
 
+    if (result[1][0] == undefined) {
+      return res.status(404).json({
+        message: 'Not found',
+        status: 404,
+      });
+    }
+
     return res.status(200).json({
-      message: 'Edit address',
-      data: result[1][0],
+      message: 'Edit address successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const deleteAddress = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const result = await req.context.models.address.destroy({
       where: { add_id: req.params.id },
     });
 
+    if (result == 0) {
+      return res.status(404).json({
+        message: 'Not found',
+        status: 404,
+      });
+    }
+
     return res.status(200).json({
       message: 'Delete Address',
-      data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };

@@ -1,15 +1,38 @@
-let i = 1;
-let result = '';
+const express = require('express');
+const app = express();
+const port = 1000;
 
-while (true) {
-  result += i;
-  i++;
+app.get('/', (req, res) => {
+  const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Obfuscated Page</title>
+        </head>
+        <body>
+            <h1>Hello, this is an obfuscated page!</h1>
+            <script>
+                document.addEventListener('contextmenu', function (e) {
+                    e.preventDefault();
+                    console.log('Right-click is disabled.');
+                });
 
-  // Break out of the loop when the length of the result reaches a limit
-  if (result.length >= 10) {
-    break;
-  }
-}
+                document.addEventListener('keydown', function (e) {
+                    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i')) {
+                        e.preventDefault();
+                        console.log('Inspect Element is disabled.');
+                    }
+                });
+            </script>
+        </body>
+        </html>
+    `;
 
-// This line will be reached after the loop breaks
-console.log(result);
+  res.send(html);
+});
+
+app.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
+});

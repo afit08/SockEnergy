@@ -1,6 +1,7 @@
 const { Sequelize } = require('sequelize');
 const sequelize = require('../helpers/queryConn.js');
 const Redis = require('ioredis');
+const uuidv4 = require('uuid');
 const redisClient = new Redis({
   host: process.env.IP_REDIS,
   port: process.env.PORT_REDIS,
@@ -14,26 +15,88 @@ redisClient.on('connect', () => {
   console.log('Connected to Redis');
 });
 
-const createProduct = async (req, res) => {
-  const { files, fields } = req.fileAttrb;
+const { body, validationResult } = require('express-validator');
 
+const createValidationRules = [
+  body('prod_name').notEmpty().escape().withMessage('Product name is required'),
+  body('prod_price')
+    .notEmpty()
+    .escape()
+    .withMessage('Product price is required'),
+  body('prod_desc')
+    .notEmpty()
+    .escape()
+    .withMessage('Product Description is required'),
+  body('prod_cate_id')
+    .notEmpty()
+    .escape()
+    .withMessage('Product Categori ID is required'),
+  body('prod_stock')
+    .notEmpty()
+    .escape()
+    .withMessage('Product Stock is required'),
+  body('prod_weight')
+    .notEmpty()
+    .escape()
+    .withMessage('Product Weight is required'),
+];
+
+const createProduct = async (req, res) => {
   try {
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const fileBuffer = req.file.buffer;
+    const fileName = req.file.originalname;
+    const {
+      prod_name,
+      prod_price,
+      prod_desc,
+      prod_cate_id,
+      prod_stock,
+      prod_weight,
+    } = req.body;
+
+    await new Promise((resolve, reject) => {
+      minioClient.putObject(
+        'sock-energy',
+        fileName,
+        fileBuffer,
+        (err, etag) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(etag);
+          }
+        },
+      );
+    });
+
     const result = await req.context.models.products.create({
-      prod_name: fields[0].value,
-      prod_price: fields[1].value,
-      prod_desc: fields[2].value,
-      prod_cate_id: fields[3].value,
-      prod_image: files[0].file.originalFilename,
-      prod_stock: fields[4].value,
-      prod_weight: fields[5].value,
+      prod_name: prod_name,
+      prod_price: prod_price,
+      prod_desc: prod_desc,
+      prod_cate_id: prod_cate_id,
+      prod_image: fileName,
+      prod_stock: prod_stock,
+      prod_weight: prod_weight,
     });
 
     return res.status(200).json({
-      message: 'Create Products',
-      data: result,
+      message: 'Create Products Successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({ message: error.message });
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
   }
 };
 
@@ -127,6 +190,7 @@ const allProducts = async (req, res) => {
       return res.status(200).json({
         message: 'Show All Products (Cached)',
         data: parsedData,
+        status: 200,
         pagination: pagination,
       });
     }
@@ -134,10 +198,11 @@ const allProducts = async (req, res) => {
     return res.status(200).json({
       message: 'Show All Products (Cached)',
       data: products,
+      status: 200,
       pagination: pagination,
     });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message, status: 500 });
   }
 };
 
@@ -208,59 +273,74 @@ const searchProduct = async (req, res) => {
     return res.status(200).json({
       message: 'Search All Products',
       data: result,
+      status: 200,
       pagination: pagination,
     });
   } catch (error) {
-    return res.status(404).json({ message: error.message });
+    return res.status(500).json({ message: error.message, status: 500 });
   }
 };
 
 const updateProducts = async (req, res) => {
-  const { files, fields } = req.fileAttrb;
-
   try {
-    const result = await req.context.models.products.update(
-      {
-        prod_name: fields[0].value,
-        prod_price: fields[1].value,
-        prod_desc: fields[2].value,
-        prod_cate_id: fields[3].value,
-        prod_image: files[0].file.originalFilename,
-        prod_stock: fields[4].value,
-        prod_weight: fields[5].value,
-      },
-      {
-        returning: true,
-        where: { prod_id: req.params.id },
-      },
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
     );
 
-    return res.status(200).json({
-      message: 'Update With Image Products',
-      data: result[1][0],
-    });
-  } catch (error) {
-    return res.status(404).json({ message: error.message });
-  }
-};
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-const updateProductsNoImage = async (req, res) => {
-  const {
-    prod_name,
-    prod_price,
-    prod_desc,
-    prod_cate_id,
-    prod_stock,
-    prod_weight,
-  } = req.body;
+    let fileBuffer, fileName;
 
-  try {
+    // Check if file is present in the request
+    if (req.file) {
+      fileBuffer = req.file.buffer;
+      fileName = req.file.originalname;
+
+      // Upload file to Minio
+      await new Promise((resolve, reject) => {
+        minioClient.putObject(
+          'sock-energy',
+          fileName,
+          fileBuffer,
+          (err, etag) => {
+            if (etag) {
+              resolve(etag);
+            } else {
+              reject(err);
+            }
+          },
+        );
+      });
+    }
+
+    // Validate that req.params.id is a valid UUID v4
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
+    const {
+      prod_name,
+      prod_price,
+      prod_desc,
+      prod_cate_id,
+      prod_stock,
+      prod_weight,
+    } = req.body;
+
     const result = await req.context.models.products.update(
       {
         prod_name: prod_name,
         prod_price: prod_price,
         prod_desc: prod_desc,
         prod_cate_id: prod_cate_id,
+        prod_image: fileName,
         prod_stock: prod_stock,
         prod_weight: prod_weight,
       },
@@ -270,33 +350,96 @@ const updateProductsNoImage = async (req, res) => {
       },
     );
 
+    if (result[1][0] == undefined) {
+      return res.status(404).json({
+        message: 'Not found',
+        status: 404,
+      });
+    }
+
     return res.status(200).json({
-      message: 'Update Without Image Products',
-      data: result[1][0],
+      message: 'Update Products Successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({ message: error.message });
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
   }
 };
 
+// const updateProductsNoImage = async (req, res) => {
+//   const {
+//     prod_name,
+//     prod_price,
+//     prod_desc,
+//     prod_cate_id,
+//     prod_stock,
+//     prod_weight,
+//   } = req.body;
+
+//   try {
+//     const result = await req.context.models.products.update(
+//       {
+//         prod_name: prod_name,
+//         prod_price: prod_price,
+//         prod_desc: prod_desc,
+//         prod_cate_id: prod_cate_id,
+//         prod_stock: prod_stock,
+//         prod_weight: prod_weight,
+//       },
+//       {
+//         returning: true,
+//         where: { prod_id: req.params.id },
+//       },
+//     );
+
+//     return res.status(200).json({
+//       message: 'Update Without Image Products',
+//       data: result[1][0],
+//     });
+//   } catch (error) {
+//     return res.status(404).json({ message: error.message });
+//   }
+// };
+
 const deleteProducts = async (req, res) => {
-  const id = req.params.id;
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+    const id = req.params.id;
     const result = await req.context.models.products.destroy({
       where: { prod_id: id },
     });
 
     return res.status(200).json({
-      message: 'Delete Product',
-      data: result,
+      message: 'Delete Product Successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({ message: error.message });
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
   }
 };
 
 const categoriProducts = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     let limit = parseInt(req.query.record);
     let page = parseInt(req.query.page);
     let start = 0 + (page - 1) * limit;
@@ -348,6 +491,7 @@ const categoriProducts = async (req, res) => {
       return res.status(200).json({
         message: 'Categori Products (Cached)',
         data: parsedData,
+        status: 200,
         pagination: pagination,
       });
     }
@@ -355,18 +499,27 @@ const categoriProducts = async (req, res) => {
     return res.status(200).json({
       message: 'Categories Products',
       data: result,
+      status: 200,
       pagination: pagination,
     });
   } catch (error) {
     return res.status(500).json({
       // Changed status code to 500 for server errors
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const detailProducts = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
     const result = await req.context.models.products.findAll({
       where: { prod_id: req.params.id },
       include: [
@@ -397,16 +550,19 @@ const detailProducts = async (req, res) => {
       return res.status(200).json({
         message: 'Detail Products (Cached)',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Detail Products',
       data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -416,7 +572,7 @@ export default {
   allProducts,
   searchProduct,
   updateProducts,
-  updateProductsNoImage,
+  // updateProductsNoImage,
   deleteProducts,
   categoriProducts,
   detailProducts,

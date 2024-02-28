@@ -2,6 +2,9 @@ import { Router } from 'express';
 import IndexController from '../controller/IndexController';
 import authJWT from '../helpers/authJWT';
 import UploadDownloadHelper from '../helpers/UploadDownloadHelper';
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const router = Router();
 
@@ -13,7 +16,7 @@ router.get(
 router.post(
   '/createRating',
   authJWT.ensureCustomer,
-  UploadDownloadHelper.uploadSingleFiles,
+  upload.single('rat_image'),
   IndexController.RatingController.createRating,
 );
 

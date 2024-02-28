@@ -2,6 +2,9 @@ import { Router } from 'express';
 import IndexController from '../controller/IndexController';
 import UploadDownloadHelper from '../helpers/UploadDownloadHelper';
 import authJWT from '../helpers/authJWT';
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const router = Router();
 
@@ -53,7 +56,7 @@ router.get(
 );
 router.post(
   '/upload_bukti/:id',
-  UploadDownloadHelper.uploadSingleFiles,
+  upload.single('fopa_image_transaction'),
   authJWT.ensureCustomer,
   IndexController.CartsController.uploadPayment,
 );

@@ -4,25 +4,70 @@ const redisClient = new Redis({
   host: process.env.IP_REDIS,
   port: process.env.PORT_REDIS,
 });
+const minioClient = require('../helpers/MinioConnection');
+
+const { body, validationResult } = require('express-validator');
+
+const createAboutValidationRules = [
+  body('abt_title').notEmpty().escape().withMessage('Title is required'),
+  body('abt_desc').notEmpty().escape().withMessage('Description is required'),
+  body('abt_lat').notEmpty().escape().withMessage('Latitude must be a number'),
+  body('abt_long')
+    .notEmpty()
+    .escape()
+    .withMessage('Longitude must be a number'),
+];
 
 const createAbout = async (req, res) => {
   try {
-    const { files, fields } = req.fileAttrb;
+    // Validate and sanitize input
+    await Promise.all(
+      createAboutValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const fileBuffer = req.file.buffer;
+    const fileName = req.file.originalname;
+    const { abt_title, abt_desc, abt_lat, abt_long } = req.body;
+
+    await new Promise((resolve, reject) => {
+      minioClient.putObject(
+        'sock-energy',
+        fileName,
+        fileBuffer,
+        (err, etag) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(etag);
+          }
+        },
+      );
+    });
+
+    // Create record in the database
     const result = await req.context.models.about.create({
-      abt_title: fields[0].value,
-      abt_desc: fields[1].value,
-      abt_image: files[0].file.originalFilename,
-      abt_lat: fields[2].value,
-      abt_long: fields[3].value,
+      abt_title: abt_title,
+      abt_desc: abt_desc,
+      abt_image: fileName,
+      abt_lat: abt_lat,
+      abt_long: abt_long,
     });
 
     return res.status(200).json({
-      message: 'Create About Successfully',
-      data: result,
+      message: 'Create about successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
-      message: error.message,
+    console.error(error);
+    return res.status(500).json({
+      message: 'Internal Server Error',
+      error: error.message,
+      status: 500,
     });
   }
 };
@@ -51,11 +96,11 @@ const allAbout = async (req, res) => {
   } catch (error) {
     // Handle errors appropriately
     return res.status(500).json({
-      message: 'Internal Server Error',
+      message: error.message,
+      status: 500,
     });
   }
 };
-
 
 const oneAbout = async (req, res) => {
   try {
@@ -99,32 +144,85 @@ const oneAbout = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({
-      message: 'Internal Server Error',
+      message: error.message,
+      status: 500,
     });
   }
 };
 
 const updateAbout = async (req, res) => {
   try {
-    const { files, fields } = req.fileAttrb;
+    // Validate and sanitize input
+    await Promise.all(
+      createAboutValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    let fileBuffer, fileName;
+
+    // Check if file is present in the request
+    if (req.file) {
+      fileBuffer = req.file.buffer;
+      fileName = req.file.originalname;
+
+      // Upload file to Minio
+      await new Promise((resolve, reject) => {
+        minioClient.putObject(
+          'sock-energy',
+          fileName,
+          fileBuffer,
+          (err, etag) => {
+            if (etag) {
+              resolve(etag);
+            } else {
+              reject(err);
+            }
+          },
+        );
+      });
+    }
+
+    // Validate that req.params.id is a valid UUID v4
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
+    const { abt_title, abt_desc, abt_lat, abt_long } = req.body;
+
     const result = await req.context.models.about.update(
       {
-        abt_title: fields[0].value,
-        abt_desc: fields[1].value,
-        abt_image: files[0].file.originalFilename,
-        abt_lat: fields[2].value,
-        abt_long: fields[3].value,
+        abt_title: abt_title,
+        abt_desc: abt_desc,
+        abt_image: fileName, // Will be undefined if no file is uploaded
+        abt_lat: abt_lat,
+        abt_long: abt_long,
       },
       { returning: true, where: { abt_id: req.params.id } },
     );
 
+    if (result[1][0] == undefined) {
+      return res.status(404).json({
+        message: 'Not found',
+        status: 404,
+      });
+    }
+
     return res.status(200).json({
-      message: 'Update About',
-      data: result[1][0],
+      message: 'Edit about successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };

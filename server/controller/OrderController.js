@@ -3,6 +3,7 @@ const geografis = require('geografis');
 const Redis = require('ioredis');
 const axios = require('axios');
 const qs = require('qs');
+const uuidv4 = require('uuid');
 
 const redisClient = new Redis({
   host: process.env.IP_REDIS,
@@ -16,6 +17,15 @@ redisClient.on('error', (err) => {
 redisClient.on('connect', () => {
   console.log('Connected to Redis');
 });
+
+const { body, validationResult } = require('express-validator');
+
+const createValidationRules = [
+  body('fopa_number_resi')
+    .notEmpty()
+    .escape()
+    .withMessage('Number resi name is required'),
+];
 
 const allOrders = async (req, res) => {
   try {
@@ -101,23 +111,34 @@ const allOrders = async (req, res) => {
         message: 'allOrders (Cached)',
         data: parsedData,
         pagination: pagination,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'All Orders',
       data: result,
+      status: 200,
       pagination: pagination,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const detailOrder = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const [result] = await sequelize.query(
       `
       select 
@@ -221,24 +242,44 @@ const detailOrder = async (req, res) => {
       return res.status(200).json({
         message: 'Detail Products (Cached)',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Detail Orders',
       data: data,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const updateStatusOrder = async (req, res) => {
-  const { fopa_number_resi } = req.body;
-  const transaction = await sequelize.transaction();
   try {
+    const transaction = await sequelize.transaction();
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const { fopa_number_resi } = req.body;
+
     const result = await req.context.models.form_payment.update(
       {
         fopa_status: 'orders',
@@ -264,12 +305,13 @@ const updateStatusOrder = async (req, res) => {
     await transaction.commit();
 
     return res.status(200).json({
-      message: 'Update Status Orders',
-      data: result[1][0],
+      message: 'Update Status Orders Successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -354,6 +396,7 @@ const allDoneOrders = async (req, res) => {
       return res.status(200).json({
         message: 'All Done Orders (Cached)',
         data: parsedData,
+        status: 200,
         pagination: pagination,
       });
     }
@@ -361,17 +404,27 @@ const allDoneOrders = async (req, res) => {
     return res.status(200).json({
       message: 'All Done Orders',
       data: result,
+      status: 200,
       pagination: pagination,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const detailDoneOrder = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const [result] = await sequelize.query(
       `
       select 
@@ -475,23 +528,34 @@ const detailDoneOrder = async (req, res) => {
       return res.status(200).json({
         message: 'Detail Done Orders (Cached)',
         data: parsedData,
+        status: 200,
       });
     }
 
     return res.status(200).json({
       message: 'Detail Done Orders',
       data: data,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const Pickup = async (req, res) => {
-  const transaction = await sequelize.transaction();
   try {
+    const transaction = await sequelize.transaction();
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const result = await req.context.models.form_payment.update(
       {
         fopa_status: 'pickup courier',
@@ -513,10 +577,16 @@ const Pickup = async (req, res) => {
     );
 
     await transaction.commit();
+    if (result[1][0] == undefined) {
+      return res.status(404).json({
+        message: 'Not found',
+        status: 404,
+      });
+    }
 
     return res.status(200).json({
       message: 'Updating Pickup Courier to Tracking',
-      data: result[1][0],
+      status: 200,
     });
   } catch (error) {
     return res.status(404).json({
@@ -656,17 +726,21 @@ const listDone = async (req, res) => {
         return res.status(200).json({
           message: 'List Delivery',
           data: [],
+          status: 200,
         });
       } else {
         return res.status(200).json({
           message: 'List Delivery',
           data: resultList,
+          status: 200,
         });
       }
     }
   } catch (error) {
-    console.error('Error in listDelivery:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
   }
 };
 

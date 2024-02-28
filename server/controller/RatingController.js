@@ -1,29 +1,94 @@
-const sequelize = require('../helpers/queryConn');
+const sequelize = require('../helpers/queryConn.js');
+const Redis = require('ioredis');
+const uuidv4 = require('uuid');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
+
+redisClient.on('error', (err) => {
+  console.error('Error connecting to Redis:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Connected to Redis');
+});
+
+const { body, validationResult } = require('express-validator');
+
+const createValidationRules = [
+  body('rat_count').notEmpty().escape().withMessage('Rating Count is required'),
+  body('rat_desc')
+    .notEmpty()
+    .escape()
+    .withMessage('Rating Description is required'),
+  body('rat_prod_id').notEmpty().escape().withMessage('Product ID is required'),
+  body('rat_fopa_id')
+    .notEmpty()
+    .escape()
+    .withMessage('Form Payment ID is required'),
+];
+
 const createRating = async (req, res) => {
   try {
-    const { files, fields } = req.fileAttrb;
+    await Promise.all(
+      createValidationRules.map((validation) => validation.run(req)),
+    );
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const fileBuffer = req.file.buffer;
+    const fileName = req.file.originalname;
+    const { rat_count, rat_desc, rat_prod_id, rat_fopa_id } = req.body;
+
+    await new Promise((resolve, reject) => {
+      minioClient.putObject(
+        'sock-energy',
+        fileName,
+        fileBuffer,
+        (err, etag) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(etag);
+          }
+        },
+      );
+    });
     const result = await req.context.models.rating.create({
-      rat_count: fields[0].value,
-      rat_desc: fields[1].value,
-      rat_image: files[0].file.originalFilename,
+      rat_count: rat_count,
+      rat_desc: rat_desc,
+      rat_image: fileName,
       rat_user_id: req.user.user_id,
-      rat_prod_id: fields[2].value,
-      rat_fopa_id: fields[3].value,
+      rat_prod_id: rat_prod_id,
+      rat_fopa_id: rat_fopa_id,
     });
 
     return res.status(200).json({
-      message: 'Create Rating Successfully',
-      data: result,
+      message: 'Create Rating Successfully!!!',
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
 
 const detailRating = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const data_product = await sequelize.query(
       `
             SELECT
@@ -48,10 +113,12 @@ const detailRating = async (req, res) => {
     return res.status(200).json({
       message: 'Detail Rating',
       data: data_product,
+      status: 200,
     });
   } catch (error) {
     return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };
@@ -80,10 +147,12 @@ const ListRating = async (req, res) => {
     return res.status(200).json({
       message: 'Detail Rating For Users',
       data: result,
+      status: 200,
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       message: error.message,
+      status: 500,
     });
   }
 };

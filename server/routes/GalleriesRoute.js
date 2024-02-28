@@ -2,6 +2,9 @@ import { Router } from 'express';
 import IndexController from '../controller/IndexController';
 import UploadDownloadHelper from '../helpers/UploadDownloadHelper';
 import authJWT from '../helpers/authJWT';
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const router = Router();
 // CUSTOMER
@@ -19,7 +22,7 @@ router.get(
 router.post(
   '/admin/store',
   authJWT.ensureAdmin,
-  UploadDownloadHelper.uploadSingleFiles,
+  upload.single('gall_image'),
   IndexController.GalleriesController.createGalleries,
 );
 router.get(
@@ -30,14 +33,14 @@ router.get(
 router.post(
   '/admin/edit/:id',
   authJWT.ensureAdmin,
-  UploadDownloadHelper.uploadSingleFiles,
+  upload.single('gall_image'),
   IndexController.GalleriesController.updateGalleries,
 );
-router.post(
-  '/admin/editNoImage/:id',
-  authJWT.ensureAdmin,
-  IndexController.GalleriesController.updateGalleriesNoImage,
-);
+// router.post(
+//   '/admin/editNoImage/:id',
+//   authJWT.ensureAdmin,
+//   IndexController.GalleriesController.updateGalleriesNoImage,
+// );
 router.delete(
   '/admin/delete/:id',
   authJWT.ensureAdmin,
