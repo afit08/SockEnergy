@@ -43,15 +43,15 @@ if (cluster.isMaster) {
   // Set the view engine to EJS
   app.set('view engine', 'ejs');
 
-  app.use((req, res, next) => {
-    // Sanitize req.body, req.query, req.params, etc.
-    sanitizeUserInputs(req.body);
-    // sanitizeUserInputs(req.query);
-    sanitizeUserInputs(req.params);
-    sanitizeUserInputs(req.fileAttrb);
+  // app.use((req, res, next) => {
+  //   // Sanitize req.body, req.query, req.params, etc.
+  //   sanitizeUserInputs(req.body);
+  //   // sanitizeUserInputs(req.query);
+  //   sanitizeUserInputs(req.params);
+  //   sanitizeUserInputs(req.fileAttrb);
 
-    next();
-  });
+  //   next();
+  // });
 
   // function sanitizeUserInputs(inputs) {
   //   for (const key in inputs) {
