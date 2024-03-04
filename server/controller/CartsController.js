@@ -1622,6 +1622,15 @@ const listCancel = async (req, res) => {
       },
     );
 
+    if (form_payment.length === 0) {
+      return res.status(404).json({
+        message: 'Not Found',
+        status: 404,
+        data: [],
+      });
+    } else {
+    }
+
     const result = [];
     for (let index = 0; index < form_payment.length; index++) {
       const village = geografis.getVillage(form_payment[index].add_village);
@@ -1946,13 +1955,20 @@ const listDone = async (req, res) => {
       },
     );
 
-    const resultList = [];
+    if (form_payment.length === 0) {
+      return res.status(404).json({
+        message: 'Not Found',
+        status: 404,
+        data: [],
+      });
+    } else {
+      const resultList = [];
 
-    for (const payment of form_payment) {
-      const village = geografis.getVillage(payment.add_village);
-
-      const data_product = await sequelize.query(
-        `
+      for (const payment of form_payment) {
+        const village = geografis.getVillage(payment.add_village);
+        console.log(village);
+        const data_product = await sequelize.query(
+          `
           SELECT
             a.cart_id,
             a.cart_qty,
@@ -1964,95 +1980,98 @@ const listDone = async (req, res) => {
           INNER JOIN products b ON b.prod_id = a.cart_prod_id
           WHERE cart_fopa_id = :id
         `,
-        {
-          replacements: { id: payment.id },
-          type: sequelize.QueryTypes.SELECT,
-        },
-      );
+          {
+            replacements: { id: payment.id },
+            type: sequelize.QueryTypes.SELECT,
+          },
+        );
 
-      const data_products = data_product.map((item) => ({
-        fopa_id: payment.id,
-        id: item.cart_id,
-        prod_id: item.prod_id,
-        qty: item.cart_qty,
-        name: item.prod_name,
-        image: item.prod_image,
-        price: item.prod_price,
-        total: item.cart_qty * item.prod_price,
-      }));
+        console.log(data_product);
 
-      const totalAll = data_products.reduce(
-        (acc, current) => acc + current.total,
-        0,
-      );
+        const data_products = data_product.map((item) => ({
+          fopa_id: payment.id,
+          id: item.cart_id,
+          prod_id: item.prod_id,
+          qty: item.cart_qty,
+          name: item.prod_name,
+          image: item.prod_image,
+          price: item.prod_price,
+          total: item.cart_qty * item.prod_price,
+        }));
 
-      const data = {
-        fopa_id: payment.id,
-        status: payment.fopa_status,
-        ongkir: payment.ongkir,
-        payment: payment.payment,
-        no_rek: payment.no_rek,
-        start_date: payment.fopa_start_date,
-        end_date: payment.fopa_end_date,
-        image_transaction: payment.fopa_image_transaction,
-        order_number: payment.fopa_no_order_second,
-        totalAll: totalAll,
-        personal_name: payment.add_personal_name,
-        phone_number: payment.add_phone_number,
-        address: payment.add_address,
-        area: `Kelurahan ${village.village} Kecamatan ${village.district} ${village.city} ${village.province} ${village.postal}`,
-        products: data_products,
-      };
+        const totalAll = data_products.reduce(
+          (acc, current) => acc + current.total,
+          0,
+        );
 
-      console.log(payment.fopa_number_resi);
+        const data = {
+          fopa_id: payment.id,
+          status: payment.fopa_status,
+          ongkir: payment.ongkir,
+          payment: payment.payment,
+          no_rek: payment.no_rek,
+          start_date: payment.fopa_start_date,
+          end_date: payment.fopa_end_date,
+          image_transaction: payment.fopa_image_transaction,
+          order_number: payment.fopa_no_order_second,
+          totalAll: totalAll,
+          personal_name: payment.add_personal_name,
+          phone_number: payment.add_phone_number,
+          address: payment.add_address,
+          area: `Kelurahan ${village.village} Kecamatan ${village.district} ${village.city} ${village.province} ${village.postal}`,
+          products: data_products,
+        };
 
-      let waybill = qs.stringify({
-        waybill: `${payment.fopa_number_resi}`,
-        courier: 'anteraja',
-      });
+        console.log(payment.fopa_number_resi);
 
-      let config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${process.env.API_TRACKING_PAKET}`,
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded',
-          key: `${process.env.KEY_ONGKIR}`,
-        },
-        data: waybill,
-      };
+        let waybill = qs.stringify({
+          waybill: `${payment.fopa_number_resi}`,
+          courier: 'anteraja',
+        });
 
-      const response = await axios(config);
-      const result_waybill = response.data.rajaongkir.result;
-      console.log(result_waybill.delivery_status.status);
-      if (result_waybill.delivery_status.status == 'DELIVERED') {
-        await redisClient.setex('listDelivery', 60, JSON.stringify(data));
+        let config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.API_TRACKING_PAKET}`,
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded',
+            key: `${process.env.KEY_ONGKIR}`,
+          },
+          data: waybill,
+        };
 
-        const cachedData = await redisClient.get('listDelivery');
-        if (cachedData) {
-          const parsedData = JSON.parse(cachedData);
-          resultList.push(parsedData);
+        const response = await axios(config);
+        const result_waybill = response.data.rajaongkir.result;
+        console.log(result_waybill.delivery_status.status);
+        if (result_waybill.delivery_status.status == 'DELIVERED') {
+          await redisClient.setex('listDelivery', 60, JSON.stringify(data));
+
+          const cachedData = await redisClient.get('listDelivery');
+          if (cachedData) {
+            const parsedData = JSON.parse(cachedData);
+            resultList.push(parsedData);
+          } else {
+            resultList.push(data);
+          }
         } else {
-          resultList.push(data);
+          resultList.push({ data: 'no data' });
         }
-      } else {
-        resultList.push({ data: 'no data' });
       }
-    }
 
-    for (let index = 0; index < resultList.length; index++) {
-      if (resultList[index].data == 'no data') {
-        return res.status(200).json({
-          message: 'List Delivery',
-          data: [],
-          status: 200,
-        });
-      } else {
-        return res.status(200).json({
-          message: 'List Delivery',
-          data: resultList,
-          status: 200,
-        });
+      for (let index = 0; index < resultList.length; index++) {
+        if (resultList[index].data == 'no data') {
+          return res.status(200).json({
+            message: 'List Delivery',
+            data: [],
+            status: 200,
+          });
+        } else {
+          return res.status(200).json({
+            message: 'List Delivery',
+            data: resultList,
+            status: 200,
+          });
+        }
       }
     }
   } catch (error) {
