@@ -4,6 +4,8 @@ const SALT_ROUND = 10;
 const geografis = require('geografis');
 const moment = require('moment');
 import { encryptData, decryptData } from '../helpers/encryption';
+const AES256 = require('aes-everywhere');
+const PW_AES = process.env.PW_AES;
 
 const signup = async (req, res) => {
   const { files, fields } = req.fileAttrb;
@@ -35,10 +37,8 @@ const signup = async (req, res) => {
 const signin = async (req, res) => {
   const { username, password } = req.body;
 
-  const encrypt_username = encryptData(username);
-  const encrypt_password = encryptData(password);
-  const decrypt_username = decryptData(encrypt_username);
-  const decrypt_password = decryptData(encrypt_password);
+  const decrypt_username = AES256.decrypt(username, PW_AES);
+  const decrypt_password = AES256.decrypt(password, PW_AES);
 
   try {
     const result = await req.context.models.users.findOne({
@@ -47,12 +47,12 @@ const signin = async (req, res) => {
     const { user_id, user_name, user_email, user_password } = result.dataValues;
     const compare = await bcrypt.compare(decrypt_password, user_password);
     if (compare) {
-      return res.send({ user_id, user_name, user_email });
+      return res.status(200).json({ user_id, user_name, user_email });
     } else {
-      return res.sendStatus(404);
+      return res.status(404).json({ message: error.message });
     }
   } catch (error) {
-    return res.sendStatus(404);
+    return res.status(500).json({ message: error.message });
   }
 };
 

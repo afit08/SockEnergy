@@ -2,6 +2,8 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const Strategy = require('passport-local').Strategy;
+const AES256 = require('aes-everywhere');
+const PW_AES = process.env.PW_AES;
 
 import bcrypt from 'bcrypt';
 
@@ -18,6 +20,9 @@ passport.use(
     },
     async function (username, password, cb) {
       try {
+        const decrypt_username = AES256.decrypt(username, PW_AES);
+        const decrypt_password = AES256.decrypt(password, PW_AES);
+
         const result = await models.users.findOne({
           include: [
             {
@@ -26,7 +31,7 @@ passport.use(
               attributes: ['role_name'],
             },
           ],
-          where: { user_name: username },
+          where: { user_name: decrypt_username },
         });
 
         const {
@@ -36,7 +41,7 @@ passport.use(
           user_photo,
           user_role: { role_name },
         } = result.dataValues;
-        const compare = await bcrypt.compare(password, user_password);
+        const compare = await bcrypt.compare(decrypt_password, user_password);
 
         if (compare)
           return cb(null, {
