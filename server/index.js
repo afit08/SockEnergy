@@ -43,42 +43,42 @@ if (cluster.isMaster) {
   // Set the view engine to EJS
   app.set('view engine', 'ejs');
 
-  // app.use((req, res, next) => {
-  //   // Sanitize req.body, req.query, req.params, etc.
-  //   sanitizeUserInputs(req.body);
-  //   // sanitizeUserInputs(req.query);
-  //   sanitizeUserInputs(req.params);
-  //   sanitizeUserInputs(req.fileAttrb);
+  app.use((req, res, next) => {
+    // Sanitize req.body, req.query, req.params, etc.
+    sanitizeUserInputs(req.body);
+    // sanitizeUserInputs(req.query);
+    sanitizeUserInputs(req.params);
+    sanitizeUserInputs(req.fileAttrb);
 
-  //   next();
-  // });
+    next();
+  });
 
-  // function sanitizeUserInputs(inputs) {
-  //   for (const key in inputs) {
-  //     if (typeof inputs[key] === process.env.SANITIZE_KEY) {
-  //       inputs[key] = DOMPurify.sanitize(inputs[key]);
-  //     }
-  //   }
-  // }
+  function sanitizeUserInputs(inputs) {
+    for (const key in inputs) {
+      if (typeof inputs[key] === process.env.SANITIZE_KEY) {
+        inputs[key] = DOMPurify.sanitize(inputs[key]);
+      }
+    }
+  }
 
-  // app.use(
-  //   body().customSanitizer(sanitizeUserInputs),
-  //   // query().customSanitizer(sanitizeUserInputs),
-  //   param().customSanitizer(sanitizeUserInputs),
-  // );
+  app.use(
+    body().customSanitizer(sanitizeUserInputs),
+    // query().customSanitizer(sanitizeUserInputs),
+    param().customSanitizer(sanitizeUserInputs),
+  );
 
   app.use(bodyParser.json({ limit: '5mb' }));
   app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
   app.use(xss());
 
-  // app.use(
-  //   sanitizer.clean({
-  //     xss: true,
-  //     noSql: true,
-  //     level: 5,
-  //     forbiddenTags: ['.execute'],
-  //   }),
-  // );
+  app.use(
+    sanitizer.clean({
+      xss: true,
+      noSql: true,
+      level: 5,
+      forbiddenTags: ['.execute'],
+    }),
+  );
   app.use(cookieParser());
 
   // Use helmet middleware

@@ -20,6 +20,9 @@ passport.use(
     },
     async function (username, password, cb) {
       try {
+        const name = AES256.encrypt(username, PW_AES);
+        const pw = AES256.encrypt(password, PW_AES);
+        console.log(name, pw);
         const decrypt_username = AES256.decrypt(username, PW_AES);
         const decrypt_password = AES256.decrypt(password, PW_AES);
 

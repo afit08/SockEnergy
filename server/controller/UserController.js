@@ -37,6 +37,9 @@ const signup = async (req, res) => {
 const signin = async (req, res) => {
   const { username, password } = req.body;
 
+  const name = AES256.encrypt(username, PW_AES);
+  const pw = AES256.encrypt(password, PW_AES);
+
   const decrypt_username = AES256.decrypt(username, PW_AES);
   const decrypt_password = AES256.decrypt(password, PW_AES);
 
