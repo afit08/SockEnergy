@@ -71,14 +71,14 @@ if (cluster.isMaster) {
   app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
   app.use(xss());
 
-  app.use(
-    sanitizer.clean({
-      xss: true,
-      noSql: true,
-      level: 5,
-      forbiddenTags: ['.execute'],
-    }),
-  );
+  // app.use(
+  //   sanitizer.clean({
+  //     xss: true,
+  //     noSql: true,
+  //     level: 5,
+  //     forbiddenTags: ['.execute'],
+  //   }),
+  // );
   app.use(cookieParser());
 
   // Use helmet middleware
