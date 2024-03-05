@@ -7,6 +7,13 @@ import { encryptData, decryptData } from '../helpers/encryption';
 const AES256 = require('aes-everywhere');
 const PW_AES = process.env.PW_AES;
 
+const { body, validationResult } = require('express-validator');
+
+const createValidationRules = [
+  body('username').notEmpty().escape().withMessage('Username is required'),
+  body('password').notEmpty().escape().withMessage('Password is required'),
+];
+
 const signup = async (req, res) => {
   const { files, fields } = req.fileAttrb;
 
@@ -35,10 +42,15 @@ const signup = async (req, res) => {
 
 // use sigin with token in authJWT
 const signin = async (req, res) => {
-  const { username, password } = req.body;
+  await Promise.all(
+    createValidationRules.map((validation) => validation.run(req)),
+  );
 
-  const name = AES256.encrypt(username, PW_AES);
-  const pw = AES256.encrypt(password, PW_AES);
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  const { username, password } = req.body;
 
   const decrypt_username = AES256.decrypt(username, PW_AES);
   const decrypt_password = AES256.decrypt(password, PW_AES);

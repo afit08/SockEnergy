@@ -1804,13 +1804,20 @@ const listDelivery = async (req, res) => {
       },
     );
 
-    const resultList = [];
+    if (form_payment.length === 0) {
+      return res.status(404).json({
+        message: 'Not Found',
+        status: 404,
+        data: [],
+      });
+    } else {
+      const resultList = [];
 
-    for (const payment of form_payment) {
-      const village = geografis.getVillage(payment.add_village);
+      for (const payment of form_payment) {
+        const village = geografis.getVillage(payment.add_village);
 
-      const data_product = await sequelize.query(
-        `
+        const data_product = await sequelize.query(
+          `
           SELECT
             a.cart_id,
             a.cart_qty,
@@ -1821,92 +1828,93 @@ const listDelivery = async (req, res) => {
           INNER JOIN products b ON b.prod_id = a.cart_prod_id
           WHERE cart_fopa_id = :id
         `,
-        {
-          replacements: { id: payment.id },
-          type: sequelize.QueryTypes.SELECT,
-        },
-      );
+          {
+            replacements: { id: payment.id },
+            type: sequelize.QueryTypes.SELECT,
+          },
+        );
 
-      const data_products = data_product.map((item) => ({
-        fopa_id: payment.id,
-        id: item.cart_id,
-        qty: item.cart_qty,
-        name: item.prod_name,
-        image: item.prod_image,
-        price: item.prod_price,
-        total: item.cart_qty * item.prod_price,
-      }));
+        const data_products = data_product.map((item) => ({
+          fopa_id: payment.id,
+          id: item.cart_id,
+          qty: item.cart_qty,
+          name: item.prod_name,
+          image: item.prod_image,
+          price: item.prod_price,
+          total: item.cart_qty * item.prod_price,
+        }));
 
-      const totalAll = data_products.reduce(
-        (acc, current) => acc + current.total,
-        0,
-      );
+        const totalAll = data_products.reduce(
+          (acc, current) => acc + current.total,
+          0,
+        );
 
-      const data = {
-        fopa_id: payment.id,
-        status: payment.fopa_status,
-        ongkir: payment.ongkir,
-        payment: payment.payment,
-        no_rek: payment.no_rek,
-        start_date: payment.fopa_start_date,
-        end_date: payment.fopa_end_date,
-        image_transaction: payment.fopa_image_transaction,
-        order_number: payment.fopa_no_order_second,
-        totalAll: totalAll,
-        personal_name: payment.add_personal_name,
-        phone_number: payment.add_phone_number,
-        address: payment.add_address,
-        area: `Kelurahan ${village.village} Kecamatan ${village.district} ${village.city} ${village.province} ${village.postal}`,
-        products: data_products,
-      };
+        const data = {
+          fopa_id: payment.id,
+          status: payment.fopa_status,
+          ongkir: payment.ongkir,
+          payment: payment.payment,
+          no_rek: payment.no_rek,
+          start_date: payment.fopa_start_date,
+          end_date: payment.fopa_end_date,
+          image_transaction: payment.fopa_image_transaction,
+          order_number: payment.fopa_no_order_second,
+          totalAll: totalAll,
+          personal_name: payment.add_personal_name,
+          phone_number: payment.add_phone_number,
+          address: payment.add_address,
+          area: `Kelurahan ${village.village} Kecamatan ${village.district} ${village.city} ${village.province} ${village.postal}`,
+          products: data_products,
+        };
 
-      let waybill = qs.stringify({
-        waybill: `${payment.fopa_number_resi}`,
-        courier: 'anteraja',
-      });
+        let waybill = qs.stringify({
+          waybill: `${payment.fopa_number_resi}`,
+          courier: 'anteraja',
+        });
 
-      let config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${process.env.API_TRACKING_PAKET}`,
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded',
-          key: `${process.env.KEY_ONGKIR}`,
-        },
-        data: waybill,
-      };
+        let config = {
+          method: 'post',
+          maxBodyLength: Infinity,
+          url: `${process.env.API_TRACKING_PAKET}`,
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded',
+            key: `${process.env.KEY_ONGKIR}`,
+          },
+          data: waybill,
+        };
 
-      const response = await axios(config);
-      const result_waybill = response.data.rajaongkir.result;
+        const response = await axios(config);
+        const result_waybill = response.data.rajaongkir.result;
 
-      if (result_waybill.delivery_status.status == 'DELIVERED') {
-        resultList.push({ data: 'no data' });
-      } else {
-        await redisClient.setex('listDelivery', 60, JSON.stringify(data));
-
-        const cachedData = await redisClient.get('listDelivery');
-        if (cachedData) {
-          const parsedData = JSON.parse(cachedData);
-          resultList.push(parsedData);
+        if (result_waybill.delivery_status.status == 'DELIVERED') {
+          resultList.push({ data: 'no data' });
         } else {
-          resultList.push(data);
+          await redisClient.setex('listDelivery', 60, JSON.stringify(data));
+
+          const cachedData = await redisClient.get('listDelivery');
+          if (cachedData) {
+            const parsedData = JSON.parse(cachedData);
+            resultList.push(parsedData);
+          } else {
+            resultList.push(data);
+          }
         }
       }
-    }
 
-    for (let index = 0; index < resultList.length; index++) {
-      if (resultList[index].data == 'no data') {
-        return res.status(200).json({
-          message: 'List Delivery',
-          data: [],
-          status: 200,
-        });
-      } else {
-        return res.status(200).json({
-          message: 'List Delivery',
-          data: resultList,
-          status: 200,
-        });
+      for (let index = 0; index < resultList.length; index++) {
+        if (resultList[index].data == 'no data') {
+          return res.status(200).json({
+            message: 'List Delivery',
+            data: [],
+            status: 200,
+          });
+        } else {
+          return res.status(200).json({
+            message: 'List Delivery',
+            data: resultList,
+            status: 200,
+          });
+        }
       }
     }
   } catch (error) {

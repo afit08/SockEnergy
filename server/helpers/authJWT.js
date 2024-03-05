@@ -20,9 +20,6 @@ passport.use(
     },
     async function (username, password, cb) {
       try {
-        const name = AES256.encrypt(username, PW_AES);
-        const pw = AES256.encrypt(password, PW_AES);
-        console.log(name, pw);
         const decrypt_username = AES256.decrypt(username, PW_AES);
         const decrypt_password = AES256.decrypt(password, PW_AES);
 
@@ -73,20 +70,33 @@ module.exports = {
 };
 
 async function login(req, res, next) {
-  // console.log(req.user.user_id);
-  const token = await sign({
-    user_id: req.user.user_id,
-    username: req.user.username,
-    roleType: req.user.userRoles,
-    user_photo: req.user.user_photo,
-  });
-  res.cookie('jwt', token, { httpOnly: true });
+  if (
+    req.user.user_id == undefined &&
+    req.user.username == undefined &&
+    req.user.userRoles == undefined &&
+    req.user.user_photo == undefined
+  ) {
+    res.status(404).json({
+      message: 'Login is Unsuccessfully!',
+      success: true,
+      status: 404,
+    });
+  } else {
+    const token = await sign({
+      user_id: req.user.user_id,
+      username: req.user.username,
+      roleType: req.user.userRoles,
+      user_photo: req.user.user_photo,
+    });
+    res.cookie('jwt', token, { httpOnly: true });
 
-  res.json({
-    message: 'Login is Successfully!',
-    success: true,
-    token: token,
-  });
+    res.status(200).json({
+      message: 'Login is Successfully!',
+      success: true,
+      status: 200,
+      token: token,
+    });
+  }
 }
 
 async function sign(payload) {
