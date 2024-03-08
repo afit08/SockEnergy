@@ -128,16 +128,16 @@ if (cluster.isMaster) {
 
   app.use(compress());
 
-  const corsOptions = {
-    origin: 'http://153.92.1.221:5000/', // Replace with your trusted domain
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-    exposedHeaders: ['custom-header'],
-    maxAge: 3600,
-  };
+  // const corsOptions = {
+  //   origin: 'http://153.92.1.221:5000/', // Replace with your trusted domain
+  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  //   credentials: true,
+  //   exposedHeaders: ['custom-header'],
+  //   maxAge: 3600,
+  // };
 
-  app.use(cors(corsOptions));
-  // app.use(cors());
+  // app.use(cors(corsOptions));
+  app.use(cors());
 
   app.use((req, res, next) => {
     req.context = { models };
