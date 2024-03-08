@@ -43,15 +43,15 @@ if (cluster.isMaster) {
   // Set the view engine to EJS
   app.set('view engine', 'ejs');
 
-  const allowedIPs = ['153.92.1.221', '127.0.0.1']; // Replace with your allowed IP addresses
+  // const allowedIPs = ['153.92.1.221', '127.0.0.1']; // Replace with your allowed IP addresses
 
   app.use((req, res, next) => {
-    const clientIP = req.ip || req.connection.remoteAddress;
-    if (allowedIPs.includes(clientIP)) {
-      next();
-    } else {
-      res.status(403).send('Forbidden');
-    }
+    // const clientIP = req.ip || req.connection.remoteAddress;
+    // if (allowedIPs.includes(clientIP)) {
+    //   next();
+    // } else {
+    //   res.status(403).send('Forbidden');
+    // }
 
     res.setHeader('X-Frame-Options', 'DENY');
 
@@ -128,16 +128,13 @@ if (cluster.isMaster) {
 
   app.use(compress());
 
-  // const corsOptions = {
-  //   origin: 'http://153.92.1.221:5000/', // Replace with your trusted domain
-  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  //   credentials: true,
-  //   exposedHeaders: ['custom-header'],
-  //   maxAge: 3600,
-  // };
+  const corsOptions = {
+    origin: 'http://153.92.1.221:5000/', // Replace with your trusted domain
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  };
 
-  // app.use(cors(corsOptions));
-  app.use(cors());
+  app.use(cors(corsOptions));
+  // app.use(cors());
 
   app.use((req, res, next) => {
     req.context = { models };
