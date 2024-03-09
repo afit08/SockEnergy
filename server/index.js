@@ -44,7 +44,9 @@ if (cluster.isMaster) {
   app.set('view engine', 'ejs');
 
   app.use((req, res, next) => {
-    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+    res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
     // Sanitize req.body, req.query, req.params, etc.
