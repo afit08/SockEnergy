@@ -43,16 +43,7 @@ if (cluster.isMaster) {
   // Set the view engine to EJS
   app.set('view engine', 'ejs');
 
-  // const allowedIPs = ['153.92.1.221', '127.0.0.1']; // Replace with your allowed IP addresses
-
   app.use((req, res, next) => {
-    // const clientIP = req.ip || req.connection.remoteAddress;
-    // if (allowedIPs.includes(clientIP)) {
-    //   next();
-    // } else {
-    //   res.status(403).send('Forbidden');
-    // }
-
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
@@ -154,7 +145,29 @@ if (cluster.isMaster) {
 
   app.use(compress());
 
-  app.use(cors());
+  const whitelist = [
+    'http://153.92.1.221:3100',
+    'http://153.92.1.221:5000',
+    'http://127.0.0.1:3100', // Change the port to match your frontend's port
+  ];
+
+  const corsOptions = {
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (whitelist.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+  };
+
+  app.use(cors(corsOptions));
+  // app.use(cors());
 
   app.use((req, res, next) => {
     req.context = { models };
