@@ -54,6 +54,7 @@ if (cluster.isMaster) {
     // }
 
     res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
 
     // Sanitize req.body, req.query, req.params, etc.
     sanitizeUserInputs(req.body);
@@ -97,13 +98,14 @@ if (cluster.isMaster) {
 
   // Set additional security headers as needed
   app.use(
-    helmet.contentSecurityPolicy({
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        imgSrc: ["'self'"],
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+        },
       },
     }),
   );
