@@ -23,5 +23,19 @@ COPY . .
 # Expose the port your app will run on
 EXPOSE 3000
 
+# Install Nginx
+RUN apt-get update \
+    && apt-get install -y nginx \
+    && rm -rf /var/lib/apt/lists/*
+
+# Remove the default Nginx configuration
+RUN rm /etc/nginx/sites-enabled/default
+
+# Copy your Nginx configuration file to the container
+COPY nginx.conf /etc/nginx/sites-available/
+
+# Create a symbolic link to enable the Nginx configuration
+RUN ln -s /etc/nginx/sites-available/nginx.conf /etc/nginx/sites-enabled/
+
 # Command to run your application
 CMD ["yarn", "start:dev"]
