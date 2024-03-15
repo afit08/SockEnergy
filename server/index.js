@@ -13,9 +13,8 @@ import routes from './routes/IndexRoute';
 import sanitizer from 'perfect-express-sanitizer';
 import bodyParser from 'body-parser';
 import { xss } from 'express-xss-sanitizer';
-import ejs from 'ejs';
 import now from 'performance-now';
-import { body, query, param, validationResult } from 'express-validator';
+import { body, param } from 'express-validator';
 import dotenv from 'dotenv';
 import middleware from './helpers/middleware';
 
@@ -24,7 +23,7 @@ dotenv.config();
 const DOMPurify = require('dompurify');
 
 const numCPUs = os.cpus().length;
-const port = process.env.PORT;
+const port = process.env.PORT || 3000; // Set default port if not provided in .env
 
 if (cluster.isMaster) {
   console.log(`Master ${process.pid} is running`);
@@ -49,95 +48,64 @@ if (cluster.isMaster) {
     res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
-    // Sanitize req.body, req.query, req.params, etc.
-    sanitizeUserInputs(req.body);
-    // sanitizeUserInputs(req.query);
-    sanitizeUserInputs(req.params);
-    sanitizeUserInputs(req.fileAttrb);
-
     next();
   });
 
   function sanitizeUserInputs(inputs) {
     for (const key in inputs) {
-      if (typeof inputs[key] === process.env.SANITIZE_KEY) {
+      if (typeof inputs[key] === 'string') {
+        // Assuming SANITIZE_KEY is a string
         inputs[key] = DOMPurify.sanitize(inputs[key]);
       }
     }
   }
 
   app.use(
-    body().customSanitizer(sanitizeUserInputs),
-    // query().customSanitizer(sanitizeUserInputs),
-    param().customSanitizer(sanitizeUserInputs),
-  );
-
-  app.use(bodyParser.json({ limit: '5mb' }));
-  app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
-  app.use(xss());
-
-  app.use(
+    bodyParser.json({ limit: '5mb' }),
+    bodyParser.urlencoded({ extended: true, limit: '5mb' }),
+    xss(),
     sanitizer.clean({
       xss: true,
       noSql: true,
       level: 5,
       forbiddenTags: ['.execute'],
     }),
+    cookieParser(),
+    sanitizeUserInputs,
   );
-  app.use(cookieParser());
 
-  // Use helmet middleware
   app.use(helmet());
 
-  // Set additional security headers as needed
   app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: [
-            "'self'",
-            "'unsafe-inline'",
-            'https://unpkg.com/vis-network/standalone/umd/vis-network.min.js',
-            'http://cdn.quilljs.com/',
-            'https://cdnjs.cloudflare.com/',
-            'https://polyfill.io/',
-            'https://maps.googleapis.com/',
-            'https://cdn.jsdelivr.net/',
-            'https://www.gstatic.com/',
-          ],
-          styleSrc: [
-            "'self'",
-            "'unsafe-inline'",
-            'http://cdn.quilljs.com/',
-            'https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.1/flowbite.min.css',
-            'https://cdn.jsdelivr.net/',
-            'https://www.gstatic.com/',
-          ],
-          imgSrc: ["'self'", 'data:'],
-          connectSrc: ["'self'"],
-          frameSrc: ["'self'"],
-          fontSrc: ["'self'"],
-          mediaSrc: ["'self'"],
-          objectSrc: ["'none'"],
-          manifestSrc: ["'self'"],
-          formAction: ["'self'"],
-        },
+    helmet.contentSecurityPolicy({
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          'https://unpkg.com',
+          'https://cdn.quilljs.com',
+          'https://cdnjs.cloudflare.com',
+          'https://polyfill.io',
+          'https://maps.googleapis.com',
+          'https://cdn.jsdelivr.net',
+          'https://www.gstatic.com',
+        ],
+        styleSrc: [
+          "'self'",
+          'https://cdn.quilljs.com',
+          'https://cdnjs.cloudflare.com',
+          'https://cdn.jsdelivr.net',
+          'https://www.gstatic.com',
+        ],
+        imgSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        frameSrc: ["'self'"],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        mediaSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        manifestSrc: ["'self'"],
+        formAction: ["'self'"],
       },
-    }),
-  );
-
-  app.use(
-    helmet.hsts({
-      maxAge: 31536000, // 1 year in seconds
-      includeSubDomains: true,
-      preload: true,
-    }),
-  );
-
-  app.use(
-    helmet.frameguard({
-      action: 'deny',
     }),
   );
 
@@ -155,12 +123,7 @@ if (cluster.isMaster) {
 
   const corsOptions = {
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (whitelist.indexOf(origin) !== -1) {
+      if (!origin || whitelist.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -169,7 +132,6 @@ if (cluster.isMaster) {
   };
 
   app.use(cors(corsOptions));
-  // app.use(cors());
 
   app.use((req, res, next) => {
     req.context = { models };
@@ -178,7 +140,6 @@ if (cluster.isMaster) {
 
   app.use(morgan('combined'));
 
-  // Middleware to log the execution time of a route
   app.use((req, res, next) => {
     const start = now();
 
