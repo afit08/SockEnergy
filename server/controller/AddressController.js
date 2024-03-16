@@ -301,10 +301,10 @@ const showAddress = async (req, res) => {
       adds.add_created_at as created_at,
       adds.add_updated_at as updated_at
       from address as adds
-      inner join dt1 as prov on prov.id = adds.add_province
-      inner join dt2 as city on city.id = adds.add_city
-      inner join dt3 as district on district.id = adds.add_district
-      inner join dt4 as village on village.id = adds.add_village
+      left join dt1 as prov on prov.id = adds.add_province
+      left join dt2 as city on city.id = adds.add_city
+      left join dt3 as district on district.id = adds.add_district
+      left join dt4 as village on village.id = adds.add_village
       where adds.add_user_id = :id 
       LIMIT :limit OFFSET :start
       `,
