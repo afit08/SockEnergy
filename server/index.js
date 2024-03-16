@@ -17,6 +17,18 @@ import now from 'performance-now';
 import { body, query, param, validationResult } from 'express-validator';
 import dotenv from 'dotenv';
 import middleware from './helpers/middleware';
+const csrf = require('csurf');
+const CSRF_EXPIRATION_TIME = 60 * 1000; // 1 minutes in milliseconds
+
+var csrfProtection = csrf({
+  cookie: {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    // Setting an expiration time for the CSRF token cookie (e.g., 1 hour)
+    maxAge: 60000, // 1 hour in milliseconds
+  },
+});
 
 dotenv.config();
 
@@ -131,6 +143,32 @@ if (cluster.isMaster) {
       },
     }),
   );
+
+  // Set CSRF token expiration time (e.g., 1 minutes)
+  const CSRF_EXPIRATION_TIME = 60 * 1000; // 1 minutes in milliseconds
+
+  // Route to render form with CSRF token
+  app.get('/token-csrf', csrfProtection, function (req, res) {
+    try {
+      res.status(200).json({
+        message: "Generate Token CSRF",
+        XSRFToken: req.csrfToken(),
+        status: 200
+      }); 
+    } catch (error) {
+      if (error.code === 'EBADCSRFTOKEN') {
+        res.status(403).json({
+          message: "Error Token",
+          status: 403
+        })
+      } else {
+        res.status(500).json({
+          message: error.message,
+          status: 500
+        })
+      }
+    }
+  });
 
   app.get('/', (req, res) => {
     res.send('Hello, world!');

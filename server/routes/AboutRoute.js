@@ -4,6 +4,8 @@ import authJWT from '../helpers/authJWT';
 const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+const csurf = require('csurf');
+const csrfProtection = csurf({ cookie: true });
 
 const router = Router();
 
@@ -11,6 +13,7 @@ router.get('/allAbout', IndexController.AboutController.allAbout);
 router.post(
   '/createAbout',
   upload.single('abt_image'),
+  csrfProtection,
   IndexController.AboutController.createAbout,
 );
 router.get('/oneAbout/:id', IndexController.AboutController.oneAbout);
