@@ -432,6 +432,13 @@ const showPayment = async (req, res) => {
 
 const checkout = async (req, res) => {
   try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
     const address = await req.context.models.address.findOne({
       where: { add_mark_default: 'default', add_user_id: req.params.id },
     });
