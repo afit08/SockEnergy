@@ -22,11 +22,6 @@ const { body, validationResult } = require('express-validator');
 const uuidv4 = require('uuid');
 
 const createValidationRules = [
-  body('cart_qty').notEmpty().escape().withMessage('Cart QTY is required'),
-  body('cart_prod_id')
-    .notEmpty()
-    .escape()
-    .withMessage('Cart Product ID is required'),
   body('fopa_ongkir').notEmpty().escape().withMessage('PayShipper is required'),
   body('fopa_payment').notEmpty().escape().withMessage('Payment is required'),
   body('fopa_desc_ongkir')
@@ -34,6 +29,14 @@ const createValidationRules = [
     .escape()
     .withMessage('Description PayShipper is required'),
   body('fopa_etd_ongkir').notEmpty().escape().withMessage('ETD is required'),
+];
+
+const createValidationAddCart = [
+  body('cart_qty').notEmpty().escape().withMessage('Cart QTY is required'),
+  body('cart_prod_id')
+    .notEmpty()
+    .escape()
+    .withMessage('Cart Product ID is required'),
 ];
 
 const allCart = async (req, res) => {
@@ -90,7 +93,7 @@ const allCart = async (req, res) => {
 const addCart = async (req, res) => {
   try {
     await Promise.all(
-      createValidationRules.map((validation) => validation.run(req)),
+      createValidationAddCart.map((validation) => validation.run(req)),
     );
 
     const errors = validationResult(req);

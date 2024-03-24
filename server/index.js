@@ -134,6 +134,7 @@ if (cluster.isMaster) {
             'http://153.92.1.221:5432/',
           ],
           frameSrc: ["'self'"],
+          frameAncestors: ["'none'"],
           fontSrc: ["'self'", 'https://fonts.gstatic.com/'],
           mediaSrc: ["'self'"],
           objectSrc: ["'none'"],
@@ -151,21 +152,21 @@ if (cluster.isMaster) {
   app.get('/token-csrf', csrfProtection, function (req, res) {
     try {
       res.status(200).json({
-        message: "Generate Token CSRF",
+        message: 'Generate Token CSRF',
         XSRFToken: req.csrfToken(),
-        status: 200
-      }); 
+        status: 200,
+      });
     } catch (error) {
       if (error.code === 'EBADCSRFTOKEN') {
         res.status(403).json({
-          message: "Error Token",
-          status: 403
-        })
+          message: 'Error Token',
+          status: 403,
+        });
       } else {
         res.status(500).json({
           message: error.message,
-          status: 500
-        })
+          status: 500,
+        });
       }
     }
   });
