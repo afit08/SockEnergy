@@ -180,7 +180,8 @@ if (cluster.isMaster) {
   const whitelist = [
     'http://153.92.1.221:3100',
     'http://153.92.1.221:5000',
-    'http://localhost:3100', // Change the port to match your frontend's port
+    'http://localhost:3100',
+    'http://localhost:5000',
   ];
 
   const corsOptions = {
