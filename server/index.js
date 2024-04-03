@@ -17,6 +17,11 @@ import now from 'performance-now';
 import { body, query, param, validationResult } from 'express-validator';
 import dotenv from 'dotenv';
 import middleware from './helpers/middleware';
+const session = require('express-session');
+const passport = require('passport');
+const generateToken = require('../server/helpers/jwt-config');
+require('../server/helpers/passport-config');
+
 const csrf = require('csurf');
 const CSRF_EXPIRATION_TIME = 60 * 1000; // 1 minutes in milliseconds
 
@@ -173,6 +178,50 @@ if (cluster.isMaster) {
 
   app.get('/', (req, res) => {
     res.send('Hello, world!');
+  });
+
+  app.use(
+    session({
+      secret: 'YOUR_SESSION_SECRET', // Replace with your session secret
+      resave: false,
+      saveUninitialized: false,
+    }),
+  );
+
+  // Initialize Passport.js middleware
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // Google OAuth2 authentication route
+  app.get(
+    '/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] }),
+  );
+
+  // Google OAuth2 callback route
+  app.get(
+    '/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    (req, res) => {
+      const data = {
+        sub: req.user._json.sub,
+        name: req.user._json.name,
+        given_name: req.user._json.given_name,
+        family_name: req.user._json.family_name,
+        picture: req.user._json.picture,
+        email: req.user._json.email,
+        locale: req.user._json.locale,
+        roleType: 'customer',
+      };
+      console.log(data);
+      const token = generateToken(data);
+      res.redirect(`/login-success?token=${token}`);
+    },
+  );
+
+  // Route to handle successful login with JWT token
+  app.get('/login-success', (req, res) => {
+    res.json({ token: req.query.token });
   });
 
   app.use(compress());
