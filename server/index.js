@@ -17,10 +17,12 @@ import now from 'performance-now';
 import { body, query, param, validationResult } from 'express-validator';
 import dotenv from 'dotenv';
 import middleware from './helpers/middleware';
+import { jwtDecode } from 'jwt-decode';
 const session = require('express-session');
 const passport = require('passport');
 const generateToken = require('../server/helpers/jwt-config');
 require('../server/helpers/passport-config');
+const sequelizeConn = require('../server/helpers/queryConn');
 
 const csrf = require('csurf');
 const CSRF_EXPIRATION_TIME = 60 * 1000; // 1 minutes in milliseconds
@@ -198,11 +200,10 @@ if (cluster.isMaster) {
     passport.authenticate('google', { scope: ['profile', 'email'] }),
   );
 
-  // Google OAuth2 callback route
   app.get(
     '/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/login' }),
-    (req, res) => {
+    async (req, res) => {
       const data = {
         sub: req.user._json.sub,
         name: req.user._json.name,
@@ -213,9 +214,44 @@ if (cluster.isMaster) {
         locale: req.user._json.locale,
         roleType: 'customer',
       };
-      console.log(data);
+
       const token = generateToken(data);
       res.redirect(`/login-success?token=${token}`);
+
+      if (token) {
+        const decoded = jwtDecode(token);
+
+        try {
+          const [role] = await sequelizeConn.query(
+            'SELECT * FROM roles WHERE role_name = :roleType',
+            {
+              replacements: { roleType: decoded.roleType },
+              type: sequelizeConn.QueryTypes.SELECT,
+            },
+          );
+
+          const result = await sequelizeConn.query(
+            'INSERT INTO users (user_id, user_name, user_email, user_photo, user_personal_name, user_role_id) VALUES (:userId, :name, :email, :picture, :pesonalName, :roleId)',
+            {
+              replacements: {
+                userId: decoded.sub,
+                name: decoded.given_name,
+                email: decoded.email,
+                pesonalName: decoded.name,
+                picture: decoded.picture,
+                roleId: role ? role.role_id : null, // Assuming role_name is the correct property to assign to user_role_id
+              },
+              type: sequelizeConn.QueryTypes.INSERT,
+            },
+          );
+
+          if (result) {
+            console.log('Data saved into database');
+          }
+        } catch (error) {
+          console.error('Error saving data into database:', error);
+        }
+      }
     },
   );
 
