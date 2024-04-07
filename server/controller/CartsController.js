@@ -956,8 +956,8 @@ const listPayment = async (req, res) => {
 };
 
 const uploadPayment = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
-    const transaction = await sequelize.transaction();
     const isValidUUID = uuidv4.validate(req.params.id);
 
     if (!isValidUUID) {
