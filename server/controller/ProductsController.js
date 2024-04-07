@@ -14,7 +14,7 @@ redisClient.on('error', (err) => {
 redisClient.on('connect', () => {
   console.log('Connected to Redis');
 });
-
+const minioClient = require('../helpers/MinioConnection');
 const { body, validationResult } = require('express-validator');
 
 const createValidationRules = [
