@@ -21,15 +21,15 @@ redisClient.on('connect', () => {
 const { body, validationResult } = require('express-validator');
 const uuidv4 = require('uuid');
 
-const createValidationRules = [
-  body('fopa_ongkir').notEmpty().escape().withMessage('PayShipper is required'),
-  body('fopa_payment').notEmpty().escape().withMessage('Payment is required'),
-  body('fopa_desc_ongkir')
-    .notEmpty()
-    .escape()
-    .withMessage('Description PayShipper is required'),
-  body('fopa_etd_ongkir').notEmpty().escape().withMessage('ETD is required'),
-];
+// const createValidationRules = [
+//   body('fopa_ongkir').notEmpty().escape().withMessage('PayShipper is required'),
+//   body('fopa_payment').notEmpty().escape().withMessage('Payment is required'),
+//   body('fopa_desc_ongkir')
+//     .notEmpty()
+//     .escape()
+//     .withMessage('Description PayShipper is required'),
+//   body('fopa_etd_ongkir').notEmpty().escape().withMessage('ETD is required'),
+// ];
 
 const createValidationAddCart = [
   body('cart_qty').notEmpty().escape().withMessage('Cart QTY is required'),
@@ -37,6 +37,37 @@ const createValidationAddCart = [
     .notEmpty()
     .escape()
     .withMessage('Cart Product ID is required'),
+];
+
+const validationUpdateCart = [
+  body('cart_qty').notEmpty().escape().withMessage('Cart QTY is required'),
+];
+
+const validationPostToPayment = [
+  body('fopa_ongkir')
+    .notEmpty()
+    .escape()
+    .withMessage('Form payment shipment is required'),
+  body('fopa_payment')
+    .notEmpty()
+    .escape()
+    .withMessage('Form payment pay is required'),
+  body('fopa_desc_ongkir')
+    .notEmpty()
+    .escape()
+    .withMessage('Form descrition shipment shipment is required'),
+  body('fopa_etd_ongkir')
+    .notEmpty()
+    .escape()
+    .withMessage('Form payment estimation shipment is required'),
+  body('fopa_start_date')
+    .notEmpty()
+    .escape()
+    .withMessage('Form payment start date is required'),
+  body('fopa_end_date')
+    .notEmpty()
+    .escape()
+    .withMessage('Form payment end date is required'),
 ];
 
 const allCart = async (req, res) => {
@@ -131,7 +162,7 @@ const updateAddCart = async (req, res) => {
       });
     }
     await Promise.all(
-      createValidationRules.map((validation) => validation.run(req)),
+      validationUpdateCart.map((validation) => validation.run(req)),
     );
 
     const errors = validationResult(req);
@@ -203,7 +234,7 @@ const postToPayment = async (req, res) => {
       });
     }
     await Promise.all(
-      createValidationRules.map((validation) => validation.run(req)),
+      validationPostToPayment.map((validation) => validation.run(req)),
     );
 
     const errors = validationResult(req);
@@ -964,15 +995,6 @@ const uploadPayment = async (req, res) => {
       return res.status(400).json({
         message: 'Invalid ID parameter',
       });
-    }
-
-    await Promise.all(
-      createValidationRules.map((validation) => validation.run(req)),
-    );
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
     }
 
     const fileBuffer = req.file.buffer;
