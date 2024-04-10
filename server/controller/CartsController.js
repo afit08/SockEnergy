@@ -6,6 +6,7 @@ require('dotenv').config();
 const axios = require('axios');
 const qs = require('qs');
 const Redis = require('ioredis');
+const minioClient = require('../helpers/MinioConnection');
 const redisClient = new Redis({
   host: process.env.IP_REDIS,
   port: process.env.PORT_REDIS,
@@ -1999,7 +2000,7 @@ const listDone = async (req, res) => {
 
       for (const payment of form_payment) {
         const village = geografis.getVillage(payment.add_village);
-        console.log(village);
+
         const data_product = await sequelize.query(
           `
           SELECT
@@ -2018,8 +2019,6 @@ const listDone = async (req, res) => {
             type: sequelize.QueryTypes.SELECT,
           },
         );
-
-        console.log(data_product);
 
         const data_products = data_product.map((item) => ({
           fopa_id: payment.id,
@@ -2055,8 +2054,6 @@ const listDone = async (req, res) => {
           products: data_products,
         };
 
-        console.log(payment.fopa_number_resi);
-
         let waybill = qs.stringify({
           waybill: `${payment.fopa_number_resi}`,
           courier: 'anteraja',
@@ -2075,7 +2072,7 @@ const listDone = async (req, res) => {
 
         const response = await axios(config);
         const result_waybill = response.data.rajaongkir.result;
-        console.log(result_waybill.delivery_status.status);
+
         if (result_waybill.delivery_status.status == 'DELIVERED') {
           await redisClient.setex('listDelivery', 60, JSON.stringify(data));
 
