@@ -4,8 +4,23 @@ const SALT_ROUND = 10;
 const geografis = require('geografis');
 const moment = require('moment');
 import { encryptData, decryptData } from '../helpers/encryption';
+import { sequelize } from '../models/init-models';
 const AES256 = require('aes-everywhere');
 const PW_AES = process.env.PW_AES;
+const Redis = require('ioredis');
+const redisClient = new Redis({
+  host: process.env.IP_REDIS,
+  port: process.env.PORT_REDIS,
+});
+
+redisClient.on('error', (err) => {
+  console.error('Error connecting to Redis:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Connected to Redis');
+});
+const uuidv4 = require('uuid');
 
 const { body, validationResult } = require('express-validator');
 
@@ -304,6 +319,172 @@ const changePassword = async (req, res) => {
   }
 };
 
+const listCustomer = async (req, res) => {
+  try {
+    let limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
+    let page = parseInt(req.query.page) || 1; // Default page to 1 if not provided
+    let start = (page - 1) * limit;
+    let end = page * limit;
+
+    const result = await sequelize.query(
+      `
+        select 
+        user_id as id,
+        user_name as username,
+        user_email as email,
+        user_handphone as no_hp,
+        user_birth_date as birth_date,
+        user_photo as photo,
+        user_personal_name as name
+        from users a
+        inner join roles b on b.role_id = a.user_role_id
+        where role_name = 'customer'
+        order by user_created_at desc
+        LIMIT :limit OFFSET :start
+      `,
+      {
+        replacements: { limit, start },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    const countResult = await sequelize.query(
+      `
+      select 
+      count(*) as count
+      from users a
+      inner join roles b on b.role_id = a.user_role_id
+      where role_name = 'customer'
+    `,
+      {
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    const countFiltered = countResult[0].count;
+
+    let pagination = {};
+    pagination.totalRow = parseInt(countFiltered);
+    pagination.totalPage = Math.ceil(countFiltered / limit);
+    if (end < countFiltered) {
+      pagination.next = {
+        page: page + 1,
+        limit: limit,
+      };
+    }
+
+    if (start > 0) {
+      pagination.prev = {
+        page: page - 1,
+        limit: limit,
+      };
+    }
+
+    await redisClient.setex(
+      'listCustomer',
+      60,
+      JSON.stringify(result, pagination),
+    );
+
+    const cachedData = await redisClient.get('listCustomer');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show All Customer (Cached)',
+        data: parsedData,
+        status: 200,
+        pagination: pagination,
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Show All Customer (Cached)',
+      data: result,
+      status: 200,
+      pagination: pagination,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+const detailCustomer = async (req, res) => {
+  try {
+    const isValidUUID = uuidv4.validate(req.params.id);
+
+    if (!isValidUUID) {
+      return res.status(400).json({
+        message: 'Invalid ID parameter',
+      });
+    }
+
+    const result = await sequelize.query(
+      `
+        select 
+        a.user_id as id,
+        a.user_name as username,
+        a.user_email as email,
+        a.user_handphone as no_hp,
+        a.user_birth_date as birth_date,
+        a.user_photo as photo,
+        a.user_personal_name as name,
+        c.gender_name,
+        d.add_id,
+        d.add_personal_name,
+        d.add_phone_number,
+        d.add_address,
+        d.add_detail_address,
+        d.add_mark,
+        d.add_mark_default,
+        e.nm as province_name,
+        f.nm as city_name,
+        g.nm as district_name,
+        h.nm as village_name
+        from users a
+        inner join roles b on b.role_id = a.user_role_id
+        left join gender c on c.gender_id = a.user_gender_id
+        left join address d on d.add_user_id = a.user_id
+        left join dt1 e on e.id = d.add_province
+        left join dt2 f on  f.id = d.add_city
+        left join dt3 g on g.id = d.add_district
+        left join dt4 h on h.id = d.add_village
+        where role_name = 'customer'
+        and user_id = :id
+        order by user_created_at desc
+      `,
+      {
+        replacements: { id: req.params.id },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    await redisClient.setex('detailCustomer', 60, JSON.stringify(result));
+
+    const cachedData = await redisClient.get('detailCustomer');
+    if (cachedData) {
+      const parsedData = JSON.parse(cachedData);
+      return res.status(200).json({
+        message: 'Show detail customer (Cached)',
+        data: parsedData,
+        status: 200,
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Show detail customer (Cached)',
+      data: result,
+      status: 200,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
+  }
+};
 export default {
   signup,
   signin,
@@ -315,4 +496,6 @@ export default {
   updateUsersNoimage,
   createGender,
   changePassword,
+  listCustomer,
+  detailCustomer,
 };

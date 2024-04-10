@@ -37,7 +37,16 @@ router.post(
   IndexController.UserController.updateUsersImage,
 );
 router.post('/createGender', IndexController.UserController.createGender);
-
+router.get(
+  '/listCustomer',
+  authJWT.ensureAdmin,
+  IndexController.UserController.listCustomer,
+);
+router.get(
+  '/detailCustomer/:id',
+  authJWT.ensureAdmin,
+  IndexController.UserController.detailCustomer,
+);
 // customer
 
 router.get(
