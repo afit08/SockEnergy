@@ -152,36 +152,6 @@ if (cluster.isMaster) {
     }),
   );
 
-  // Set CSRF token expiration time (e.g., 1 minutes)
-  const CSRF_EXPIRATION_TIME = 60 * 1000; // 1 minutes in milliseconds
-
-  // Route to render form with CSRF token
-  app.get('/token-csrf', csrfProtection, function (req, res) {
-    try {
-      res.status(200).json({
-        message: 'Generate Token CSRF',
-        XSRFToken: req.csrfToken(),
-        status: 200,
-      });
-    } catch (error) {
-      if (error.code === 'EBADCSRFTOKEN') {
-        res.status(403).json({
-          message: 'Error Token',
-          status: 403,
-        });
-      } else {
-        res.status(500).json({
-          message: error.message,
-          status: 500,
-        });
-      }
-    }
-  });
-
-  app.get('/', (req, res) => {
-    res.send('Hello, world!');
-  });
-
   app.use(
     session({
       secret: 'YOUR_SESSION_SECRET', // Replace with your session secret
@@ -194,14 +164,99 @@ if (cluster.isMaster) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  app.use(compress());
+
+  const whitelist = [
+    'http://153.92.1.221:3100',
+    'http://153.92.1.221:5000',
+    'http://localhost:3100',
+    'http://localhost:5000',
+    'http://localhost:5173',
+  ];
+
+  const corsOptions = {
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (whitelist.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+  };
+
+  app.use(cors(corsOptions));
+  // app.use(cors());
+
+  app.use((req, res, next) => {
+    req.context = { models };
+    next();
+  });
+
+  app.use(morgan('combined'));
+
+  // Middleware to log the execution time of a route
+  app.use((req, res, next) => {
+    const start = now();
+
+    res.on('finish', () => {
+      const end = now();
+      const duration = end - start;
+      console.log(
+        `Route ${req.method} ${req.url} executed in ${duration.toFixed(
+          2,
+        )} milliseconds`,
+      );
+    });
+
+    next();
+  });
+
+  // Set CSRF token expiration time (e.g., 1 minutes)
+  // const CSRF_EXPIRATION_TIME = 60 * 1000; // 1 minutes in milliseconds
+
+  // Route to render form with CSRF token
+  app.get(
+    '/token-csrf',
+    cors(corsOptions),
+    csrfProtection,
+    function (req, res) {
+      try {
+        res.status(200).json({
+          message: 'Generate Token CSRF',
+          XSRFToken: req.csrfToken(),
+          status: 200,
+        });
+      } catch (error) {
+        if (error.code === 'EBADCSRFTOKEN') {
+          res.status(403).json({
+            message: 'Error Token',
+            status: 403,
+          });
+        } else {
+          res.status(500).json({
+            message: error.message,
+            status: 500,
+          });
+        }
+      }
+    },
+  );
+
   // Google OAuth2 authentication route
   app.get(
     '/auth/google',
+    cors(corsOptions),
     passport.authenticate('google', { scope: ['profile', 'email'] }),
   );
 
   app.get(
     '/auth/google/callback',
+    cors(corsOptions),
     passport.authenticate('google', { failureRedirect: '/login' }),
     async (req, res) => {
       const data = {
@@ -256,60 +311,12 @@ if (cluster.isMaster) {
   );
 
   // Route to handle successful login with JWT token
-  app.get('/login-success', (req, res) => {
+  app.get('/login-success', cors(corsOptions), (req, res) => {
     res.json({ token: req.query.token });
   });
 
-  app.use(compress());
-
-  const whitelist = [
-    'http://153.92.1.221:3100',
-    'http://153.92.1.221:5000',
-    'http://localhost:3100',
-    'http://localhost:5000',
-    'http://localhost:5173',
-  ];
-
-  const corsOptions = {
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (whitelist.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-  };
-
-  app.use(cors(corsOptions));
-  // app.use(cors());
-
-  app.use((req, res, next) => {
-    req.context = { models };
-    next();
-  });
-
-  app.use(morgan('combined'));
-
-  // Middleware to log the execution time of a route
-  app.use((req, res, next) => {
-    const start = now();
-
-    res.on('finish', () => {
-      const end = now();
-      const duration = end - start;
-      console.log(
-        `Route ${req.method} ${req.url} executed in ${duration.toFixed(
-          2,
-        )} milliseconds`,
-      );
-    });
-
-    next();
+  app.get('/', cors(corsOptions), (req, res) => {
+    res.send('Hello, world!');
   });
 
   app.use(config.URL_API + '/auth', routes.UserRoute);
