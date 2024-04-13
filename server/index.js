@@ -267,6 +267,7 @@ if (cluster.isMaster) {
     'http://153.92.1.221:5000',
     'http://localhost:3100',
     'http://localhost:5000',
+    'http://localhost:5173',
   ];
 
   const corsOptions = {
