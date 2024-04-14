@@ -69,4 +69,12 @@ router.post(
   IndexController.ProductsController.searchProduct,
 );
 router.get('/image/:filename', UploadDownloadHelper.showProductImage);
+
+// NO AUTH
+router.get('/view/all', IndexController.ProductsController.allProducts);
+router.get(
+  '/view/detailProducts/:id',
+  IndexController.ProductsController.detailProducts,
+);
+router.post('/view/search', IndexController.ProductsController.searchProduct);
 export default router;

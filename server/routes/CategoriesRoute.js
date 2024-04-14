@@ -69,4 +69,15 @@ router.get(
   IndexController.CategoriesController.detailCategoriesCustomer,
 );
 
+// NO AUTH
+router.get(
+  '/view/all',
+  IndexController.CategoriesController.allCategoriesCustomer,
+);
+
+router.get(
+  '/view/:id',
+  IndexController.CategoriesController.detailCategoriesCustomer,
+);
+
 export default router;

@@ -13,6 +13,8 @@ router.get(
   authJWT.ensureCustomer,
   IndexController.GalleriesController.allGalleries,
 );
+// NO AUTH
+router.get('/view/all', IndexController.GalleriesController.allGalleries);
 // ADMIN
 router.get(
   '/admin/all',

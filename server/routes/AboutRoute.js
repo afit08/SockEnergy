@@ -9,18 +9,38 @@ const csrfProtection = csurf({ cookie: true });
 
 const router = Router();
 
-router.get('/allAbout', IndexController.AboutController.allAbout);
+// ADMIN
+router.get(
+  '/allAbout',
+  authJWT.ensureAdmin,
+  IndexController.AboutController.allAbout,
+);
 router.post(
   '/createAbout',
   upload.single('abt_image'),
   csrfProtection,
+  authJWT.ensureAdmin,
   IndexController.AboutController.createAbout,
 );
-router.get('/oneAbout/:id', IndexController.AboutController.oneAbout);
+router.get(
+  '/oneAbout/:id',
+  authJWT.ensureAdmin,
+  IndexController.AboutController.oneAbout,
+);
 router.post(
   '/updateAbout/:id',
   upload.single('abt_image'),
+  authJWT.ensureAdmin,
   IndexController.AboutController.updateAbout,
 );
+
+// CUSTOMER
+router.get(
+  '/customer/allAbout',
+  authJWT.ensureCustomer,
+  IndexController.AboutController.allAbout,
+);
+
+router.get('/view/allAbout', IndexController.AboutController.allAbout);
 
 export default router;
