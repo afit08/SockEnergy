@@ -24,19 +24,6 @@ const generateToken = require('../server/helpers/jwt-config');
 require('../server/helpers/passport-config');
 const sequelizeConn = require('../server/helpers/queryConn');
 
-const csrf = require('csurf');
-const CSRF_EXPIRATION_TIME = 60 * 1000; // 1 minutes in milliseconds
-
-var csrfProtection = csrf({
-  cookie: {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'strict',
-    // Setting an expiration time for the CSRF token cookie (e.g., 1 hour)
-    maxAge: 60000, // 1 hour in milliseconds
-  },
-});
-
 dotenv.config();
 
 const DOMPurify = require('dompurify');
@@ -216,37 +203,6 @@ if (cluster.isMaster) {
     next();
   });
 
-  // Set CSRF token expiration time (e.g., 1 minutes)
-  // const CSRF_EXPIRATION_TIME = 60 * 1000; // 1 minutes in milliseconds
-
-  // Route to render form with CSRF token
-  app.get(
-    '/token-csrf',
-    cors(corsOptions),
-    csrfProtection,
-    function (req, res) {
-      try {
-        res.status(200).json({
-          message: 'Generate Token CSRF',
-          XSRFToken: req.csrfToken(),
-          status: 200,
-        });
-      } catch (error) {
-        if (error.code === 'EBADCSRFTOKEN') {
-          res.status(403).json({
-            message: 'Error Token',
-            status: 403,
-          });
-        } else {
-          res.status(500).json({
-            message: error.message,
-            status: 500,
-          });
-        }
-      }
-    },
-  );
-
   // Google OAuth2 authentication route
   app.get(
     '/auth/google',
@@ -331,6 +287,7 @@ if (cluster.isMaster) {
   app.use(config.URL_API + '/orders', routes.OrderRoute);
   app.use(config.URL_API + '/about', routes.AboutRoute);
   app.use(config.URL_API + '/rating', routes.RatingRoute);
+  app.use(config.URL_API + '/csrf', routes.csrfRoute);
 
   app.use(middleware.handleError);
   app.use(middleware.notFound);

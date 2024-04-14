@@ -10,6 +10,7 @@ import AddressController from './AddressController';
 import OrderController from './OrderController';
 import AboutController from './AboutController';
 import RatingController from './RatingController';
+import csrfController from './csrfController';
 
 export default {
   UserController,
@@ -24,4 +25,5 @@ export default {
   OrderController,
   AboutController,
   RatingController,
+  csrfController,
 };

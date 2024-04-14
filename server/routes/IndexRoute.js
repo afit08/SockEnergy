@@ -10,6 +10,7 @@ import AddressRoute from './AddressRoute';
 import OrderRoute from './OrderRoute';
 import AboutRoute from './AboutRoute';
 import RatingRoute from './RatingRoute';
+import csrfRoute from './csrfRoute';
 
 export default {
   UserRoute,
@@ -24,4 +25,5 @@ export default {
   OrderRoute,
   AboutRoute,
   RatingRoute,
+  csrfRoute,
 };
