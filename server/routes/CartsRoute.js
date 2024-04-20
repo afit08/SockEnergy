@@ -21,6 +21,7 @@ router.get(
 );
 router.post(
   '/createPayment/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureCustomer,
   IndexController.CartsController.postToPayment,
 );
@@ -36,6 +37,7 @@ router.get(
 );
 router.post(
   '/updateCart/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureCustomer,
   IndexController.CartsController.updateAddCart,
 );
@@ -57,6 +59,7 @@ router.get(
 router.post(
   '/upload_bukti/:id',
   upload.single('fopa_image_transaction'),
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureCustomer,
   IndexController.CartsController.uploadPayment,
 );
@@ -73,6 +76,7 @@ router.get(
 router.post(
   '/sendCancel/:id',
   authJWT.ensureCustomer,
+  IndexController.csrfController.validateCSRFToken,
   IndexController.CartsController.sendCancel,
 );
 router.get(

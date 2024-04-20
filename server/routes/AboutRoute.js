@@ -28,6 +28,7 @@ router.get(
 router.post(
   '/updateAbout/:id',
   upload.single('abt_image'),
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   IndexController.AboutController.updateAbout,
 );

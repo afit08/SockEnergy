@@ -23,6 +23,7 @@ router.get(
 );
 router.post(
   '/admin/store',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   upload.single('gall_image'),
   IndexController.GalleriesController.createGalleries,
@@ -34,15 +35,11 @@ router.get(
 );
 router.post(
   '/admin/edit/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   upload.single('gall_image'),
   IndexController.GalleriesController.updateGalleries,
 );
-// router.post(
-//   '/admin/editNoImage/:id',
-//   authJWT.ensureAdmin,
-//   IndexController.GalleriesController.updateGalleriesNoImage,
-// );
 router.delete(
   '/admin/delete/:id',
   authJWT.ensureAdmin,
@@ -55,6 +52,7 @@ router.get(
 );
 router.post(
   '/admin/searchCategories',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   IndexController.GalleriesController.allGalleriesSearch,
 );

@@ -15,6 +15,7 @@ router.get(
 );
 router.post(
   '/admin/store',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   upload.single('cate_image'),
   IndexController.CategoriesController.createCategories,
@@ -26,15 +27,11 @@ router.get(
 );
 router.post(
   '/admin/edit/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   upload.single('cate_image'),
   IndexController.CategoriesController.editCategories,
 );
-// router.post(
-//   '/admin/editNoImage/:id',
-//   authJWT.ensureAdmin,
-//   IndexController.CategoriesController.editCategoriesNoImage,
-// );
 router.delete(
   '/admin/delete/:id',
   authJWT.ensureAdmin,
@@ -47,6 +44,7 @@ router.get(
 );
 router.post(
   '/admin/searchCategories',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   IndexController.CategoriesController.allCategoriesSearch,
 );

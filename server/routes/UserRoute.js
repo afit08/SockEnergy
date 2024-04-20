@@ -13,9 +13,16 @@ const limiter = rateLimit({
 
 const router = Router();
 
-router.post('/signin', limiter, authJWT.authenticate, authJWT.login);
+router.post(
+  '/signin',
+  IndexController.csrfController.validateCSRFToken,
+  limiter,
+  authJWT.authenticate,
+  authJWT.login,
+);
 router.post(
   '/signup',
+  IndexController.csrfController.validateCSRFToken,
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.UserController.signup,
 );
@@ -29,14 +36,20 @@ router.get('/listGender', IndexController.UserController.listGender);
 router.get('/detailUser/:id', IndexController.UserController.detailUsers);
 router.post(
   '/updateNoImage/:id',
+  IndexController.csrfController.validateCSRFToken,
   IndexController.UserController.updateUsersNoimage,
 );
 router.post(
   '/updateImage/:id',
+  IndexController.csrfController.validateCSRFToken,
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.UserController.updateUsersImage,
 );
-router.post('/createGender', IndexController.UserController.createGender);
+router.post(
+  '/createGender',
+  IndexController.csrfController.validateCSRFToken,
+  IndexController.UserController.createGender,
+);
 router.get(
   '/listCustomer',
   authJWT.ensureAdmin,
@@ -56,17 +69,20 @@ router.get(
 );
 router.post(
   '/customer/updateNoImage/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureCustomer,
   IndexController.UserController.updateUsersNoimage,
 );
 router.post(
   '/customer/updateImage/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureCustomer,
   UploadDownloadHelper.uploadSingleFiles,
   IndexController.UserController.updateUsersImage,
 );
 router.post(
   '/customer/changePassword/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureCustomer,
   IndexController.UserController.changePassword,
 );

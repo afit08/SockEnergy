@@ -15,6 +15,7 @@ router.get(
 
 router.post(
   '/createRating',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureCustomer,
   upload.single('rat_image'),
   IndexController.RatingController.createRating,

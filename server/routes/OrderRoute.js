@@ -18,6 +18,7 @@ router.get(
 
 router.post(
   '/admin/updateOrders/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   IndexController.OrderController.updateStatusOrder,
 );
@@ -36,6 +37,7 @@ router.get(
 
 router.post(
   '/admin/pickup/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   IndexController.OrderController.Pickup,
 );

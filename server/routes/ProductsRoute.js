@@ -16,26 +16,24 @@ router.get(
 );
 router.post(
   '/search/products',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   IndexController.ProductsController.searchProduct,
 );
 router.post(
   '/store',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   upload.single('prod_image'),
   IndexController.ProductsController.createProduct,
 );
 router.post(
   '/update/:id',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureAdmin,
   upload.single('prod_image'),
   IndexController.ProductsController.updateProducts,
 );
-// router.post(
-//   "/updateNoImage/:id",
-//   authJWT.ensureAdmin,
-//   IndexController.ProductsController.updateProductsNoImage,
-// );
 router.delete(
   '/delete/:id',
   authJWT.ensureAdmin,
@@ -65,6 +63,7 @@ router.get(
 );
 router.post(
   '/customer/search',
+  IndexController.csrfController.validateCSRFToken,
   authJWT.ensureCustomer,
   IndexController.ProductsController.searchProduct,
 );
@@ -76,5 +75,9 @@ router.get(
   '/view/detailProducts/:id',
   IndexController.ProductsController.detailProducts,
 );
-router.post('/view/search', IndexController.ProductsController.searchProduct);
+router.post(
+  '/view/search',
+  IndexController.csrfController.validateCSRFToken,
+  IndexController.ProductsController.searchProduct,
+);
 export default router;

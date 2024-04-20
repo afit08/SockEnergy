@@ -11,7 +11,7 @@ function generateCSRFToken(req, res) {
         expiry: expirationTime,
       };
     }
-    return res.status(500).json({
+    return res.status(200).json({
       message: 'Generate csrf token',
       csrfToken: req.session.csrfToken.token,
       status: 200,
