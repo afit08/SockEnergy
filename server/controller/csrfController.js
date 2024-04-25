@@ -11,6 +11,13 @@ function generateCSRFToken(req, res) {
         expiry: expirationTime,
       };
     }
+
+    // Set CSRF token in a cookie
+    res.cookie('csrfToken', req.session.csrfToken.token, {
+      expires: new Date(expirationTime),
+      httpOnly: true,
+    });
+
     return res.status(200).json({
       message: 'Generate csrf token',
       csrfToken: req.session.csrfToken.token,
@@ -29,14 +36,10 @@ function validateCSRFToken(req, res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
   }
-
+  console.log(req.cookies.csrfToken);
   // Check if the CSRF token in the request body matches the one in session
   const csrfToken = req.body.csrfToken || req.headers['x-csrf-token'];
-  if (
-    !csrfToken ||
-    csrfToken !== req.session.csrfToken.token ||
-    req.session.csrfToken.expiry < Date.now()
-  ) {
+  if (!req.headers['x-csrf-token'] || !csrfToken) {
     return res.status(403).json({ message: 'Invalid CSRF token', status: 403 });
   }
 

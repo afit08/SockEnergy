@@ -154,11 +154,11 @@ if (cluster.isMaster) {
   app.use(compress());
 
   const whitelist = [
-    'http://153.92.1.221:3100',
-    'http://153.92.1.221:5000',
-    'http://localhost:3100',
-    'http://localhost:5000',
-    'http://localhost:5173',
+    'http://153.92.1.221:3100/',
+    'http://153.92.1.221:5000/',
+    'http://127.0.0.1:3100',
+    'http://127.0.0.1:5000',
+    'http://127.0.0.1:5173',
   ];
 
   const corsOptions = {
