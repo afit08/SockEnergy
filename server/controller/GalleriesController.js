@@ -106,7 +106,7 @@ const allGalleriesSearch = async (req, res) => {
 
     const countResult = await sequelize.query(
       `
-                select * from galleries
+                select count(*) as total from galleries
                 where lower(gall_name) like lower('%${search}%')
             `,
       {
@@ -114,7 +114,7 @@ const allGalleriesSearch = async (req, res) => {
       },
     );
 
-    const countFiltered = countResult.length;
+    const countFiltered = countResult[0].total;
 
     let pagination = {};
     pagination.totalRow = parseInt(countFiltered);

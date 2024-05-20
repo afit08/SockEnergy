@@ -69,6 +69,8 @@ const allOrders = async (req, res) => {
           (fopa_status = 'payment')
           OR 
           (fopa_status = 'unpayment' AND fopa_payment = 'Cash on Delivery')
+          ORDER BY 
+          fopa_created_at DESC  
       `,
       {
         type: sequelize.QueryTypes.SELECT,

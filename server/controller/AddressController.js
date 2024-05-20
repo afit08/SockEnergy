@@ -313,9 +313,25 @@ const showAddress = async (req, res) => {
         type: sequelize.QueryTypes.SELECT,
       },
     );
-    const countResult = await req.context.models.address.findAndCountAll({});
 
-    const countFiltered = countResult.count;
+    const countResult = await sequelize.query(
+      `
+      select 
+      count(*) as total
+      from address as adds
+      left join dt1 as prov on prov.id = adds.add_province
+      left join dt2 as city on city.id = adds.add_city
+      left join dt3 as district on district.id = adds.add_district
+      left join dt4 as village on village.id = adds.add_village
+      where adds.add_user_id = :id
+      `,
+      {
+        replacements: { id: req.user.user_id },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+
+    const countFiltered = countResult[0].total;
 
     let pagination = {};
     pagination.totalRow = parseInt(countFiltered);

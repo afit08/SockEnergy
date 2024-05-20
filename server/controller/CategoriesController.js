@@ -87,7 +87,9 @@ const allCategories = async (req, res) => {
       limit: limit,
     });
 
-    const countResult = await req.context.models.categories.findAndCountAll({});
+    const countResult = await req.context.models.categories.findAndCountAll({      
+      order: [['cate_created_at', 'DESC']],
+    });
     // console.log(countResult);
     const countFiltered = countResult.count;
 
@@ -158,7 +160,7 @@ const allCategoriesSearch = async (req, res) => {
 
     const countResult = await sequelize.query(
       `
-        select * from categories 
+        select count(*) as total from categories 
         where lower(cate_name) like lower('%${search}%')
       `,
       {
@@ -166,7 +168,7 @@ const allCategoriesSearch = async (req, res) => {
       },
     );
 
-    const countFiltered = countResult.length;
+    const countFiltered = countResult[0].total;
 
     let pagination = {};
     pagination.totalRow = parseInt(countFiltered);
@@ -442,7 +444,16 @@ const allCategoriesCustomer = async (req, res) => {
       limit: limit,
     });
 
-    const countResult = await req.context.models.categories.findAndCountAll({});
+    const countResult = await req.context.models.categories.findAndCountAll({
+      order: [['cate_created_at', 'DESC']],
+      include: [
+        {
+          model: req.context.models.products,
+          as: 'products',
+          attributes: ['prod_id', 'prod_name'],
+        },
+      ],
+    });
     // console.log(countResult);
     const countFiltered = countResult.count;
 

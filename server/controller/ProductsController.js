@@ -155,7 +155,7 @@ const allProducts = async (req, res) => {
         ORDER BY prod_created_at DESC
       `,
       {
-        type: Sequelize.QueryTypes.SELECT,
+        type: sequelize.QueryTypes.SELECT,
       },
     );
 
@@ -228,9 +228,12 @@ const searchProduct = async (req, res) => {
 
     const countResult = await sequelize.query(
       `
-                select count(*) as count from products
-            `,
+      select count(*) as count from products a
+      inner join categories b on b.cate_id = a.prod_cate_id
+      where lower(prod_name) like lower(:id) 
+      `,
       {
+        replacements: { limit, start, id: `%${search}%` },
         type: sequelize.QueryTypes.SELECT,
       },
     );
@@ -458,7 +461,16 @@ const categoriProducts = async (req, res) => {
       limit: limit,
     });
 
-    const countResult = await req.context.models.products.findAndCountAll({});
+    const countResult = await req.context.models.products.findAndCountAll({
+      where: { prod_cate_id: req.params.id },
+      include: [
+        {
+          model: req.context.models.categories,
+          as: 'prod_cate',
+          attributes: ['cate_id', 'cate_name'],
+        },
+      ],
+    });
 
     const countFiltered = countResult.count;
 
